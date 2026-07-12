@@ -20,6 +20,18 @@
 | 6 | `06-dashboard-profil.md` | Tableau de bord + page Profil | « Tableau de bord + Profil » |
 | 7 | `07-finitions.md` | Responsive, états vides, revue finale | « Finitions v1 » |
 
+## Dépôt GitHub
+
+`https://github.com/rmizk/Project-SHF.git` (privé)
+
+Après le Prompt 0, dire à Claude Code :
+
+```
+Connecte ce projet au dépôt GitHub https://github.com/rmizk/Project-SHF.git et pousse la branche main
+```
+
+Ensuite, après chaque module : « pousse sur GitHub ».
+
 ## Conseils
 
 - Claude Code lit `CLAUDE.md` automatiquement au démarrage — les règles y sont.

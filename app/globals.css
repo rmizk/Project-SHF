@@ -1,26 +1,24 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Mode sombre piloté par la classe `dark` sur <html> (persisté en localStorage) */
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@theme {
+  /* Palette Comptéo (d'après les maquettes) */
+  --color-brand: #3b5bfd; /* bleu principal (actions, item actif) */
+  --color-brand-hover: #2f4be0;
+  --color-accent: #c8f24e; /* vert lime du logo */
+  --color-sidebar: #0c0d10; /* sidebar sombre sur les deux thèmes */
+  --color-surface-light: #f5f6f8; /* fond de page clair */
+  --color-surface-dark: #101114; /* fond de page sombre */
+  --color-card-dark: #17181c; /* cartes en mode sombre */
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
