@@ -14,6 +14,10 @@ function pageTitle(pathname: string): string {
   return item?.label ?? "Comptéo";
 }
 
+function pageSubtitle(pathname: string): string | undefined {
+  return NAV_ITEMS.find((i) => isActivePath(pathname, i.href))?.subtitle;
+}
+
 export default function TopBar() {
   const pathname = usePathname();
   const organization = useOrganization();
@@ -26,7 +30,7 @@ export default function TopBar() {
         <div className="min-w-0">
           <h1 className="truncate text-base font-bold">{pageTitle(pathname)}</h1>
           <p className="truncate text-xs text-neutral-500 dark:text-neutral-400">
-            {organization.name} · {organization.org_code}
+            {organization.name} · {pageSubtitle(pathname) ?? organization.org_code}
           </p>
         </div>
         <div className="ml-auto flex items-center gap-2">
