@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrganization } from "@/lib/organization";
+import { parseAmount } from "@/lib/amounts";
 
 export type InvoiceFormState = {
   error?: string;
@@ -17,16 +18,6 @@ const ACCEPTED_TYPES: Record<string, string> = {
   "image/png": "png",
 };
 const MAX_SIZE = 10 * 1024 * 1024; // 10 Mo
-
-// « 1 250,500 » / « 1250.5 » → « 1250.500 » (string : pas de float en base)
-function parseAmount(raw: string): string | null {
-  const normalized = raw
-    .replace(/[\s  ]/g, "")
-    .replace(",", ".");
-  if (!/^\d+(\.\d{1,3})?$/.test(normalized)) return null;
-  const [int, dec = ""] = normalized.split(".");
-  return `${int}.${dec.padEnd(3, "0")}`;
-}
 
 export async function addPurchaseInvoice(
   _prev: InvoiceFormState,

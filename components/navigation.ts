@@ -24,7 +24,13 @@ export const NAV_ITEMS: NavItem[] = [
     icon: ShoppingCart,
     subtitle: "Factures fournisseurs",
   },
-  { href: "/services", label: "Services", shortLabel: "Services", icon: Wrench },
+  {
+    href: "/services",
+    label: "Services",
+    shortLabel: "Services",
+    icon: Wrench,
+    subtitle: "Attachements clients",
+  },
   { href: "/comptabilite", label: "Comptabilité", shortLabel: "Compta", icon: FileText },
   { href: "/depenses", label: "Dépenses", shortLabel: "Dépenses", icon: DollarSign },
 ];
