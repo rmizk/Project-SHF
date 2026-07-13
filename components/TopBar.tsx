@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { Bell, Search } from "lucide-react";
 import { NAV_ITEMS, isActivePath } from "./navigation";
 import ThemeToggle from "./ThemeToggle";
+import { useOrganization } from "./OrganizationProvider";
+import { organizationInitials } from "@/lib/organization-utils";
 
 function pageTitle(pathname: string): string {
   if (pathname.startsWith("/profil")) return "Profil";
@@ -14,6 +16,8 @@ function pageTitle(pathname: string): string {
 
 export default function TopBar() {
   const pathname = usePathname();
+  const organization = useOrganization();
+  const initials = organizationInitials(organization.name);
 
   return (
     <header className="sticky top-0 z-20 border-b border-neutral-200 bg-white dark:border-neutral-800 dark:bg-card-dark">
@@ -22,7 +26,7 @@ export default function TopBar() {
         <div className="min-w-0">
           <h1 className="truncate text-base font-bold">{pageTitle(pathname)}</h1>
           <p className="truncate text-xs text-neutral-500 dark:text-neutral-400">
-            SARL Meridian · Organisation
+            {organization.name} · {organization.org_code}
           </p>
         </div>
         <div className="ml-auto flex items-center gap-2">
@@ -50,7 +54,7 @@ export default function TopBar() {
             aria-label="Profil de l'organisation"
             className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand text-xs font-bold text-white"
           >
-            SM
+            {initials}
           </Link>
         </div>
       </div>
@@ -75,7 +79,7 @@ export default function TopBar() {
             aria-label="Profil de l'organisation"
             className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand text-xs font-bold text-white"
           >
-            SM
+            {initials}
           </Link>
         </div>
       </div>

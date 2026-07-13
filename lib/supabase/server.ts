@@ -1,8 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { SESSION_ONLY_COOKIE, stripPersistence } from "./cookies";
 
-export async function createClient() {
+export { SESSION_ONLY_COOKIE } from "./cookies";
+
+export async function createClient(opts?: { sessionOnly?: boolean }) {
   const cookieStore = await cookies();
+  const sessionOnly =
+    opts?.sessionOnly ?? cookieStore.get(SESSION_ONLY_COOKIE)?.value === "1";
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,11 +20,11 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              cookieStore.set(name, value, stripPersistence(options, sessionOnly))
             );
           } catch {
             // Appelé depuis un Server Component : les cookies seront
-            // rafraîchis par le middleware, on peut ignorer l'erreur.
+            // rafraîchis par le proxy, on peut ignorer l'erreur.
           }
         },
       },

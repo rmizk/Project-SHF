@@ -4,9 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { NAV_ITEMS, isActivePath } from "./navigation";
+import { useOrganization } from "./OrganizationProvider";
+import { organizationInitials } from "@/lib/organization-utils";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const organization = useOrganization();
   const profilActive = pathname.startsWith("/profil");
 
   return (
@@ -58,11 +61,11 @@ export default function Sidebar() {
           }`}
         >
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand text-xs font-bold text-white">
-            SM
+            {organizationInitials(organization.name)}
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-semibold">
-              SARL Meridian
+              {organization.name}
             </span>
             <span
               className={`block text-xs ${profilActive ? "text-white/70" : "text-neutral-500"}`}

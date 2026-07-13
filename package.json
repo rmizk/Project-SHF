@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "approve-org": "node --env-file=.env.local scripts/approve-org.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
