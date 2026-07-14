@@ -95,7 +95,26 @@ async function main() {
       .single();
     if (orgError) throw orgError;
 
-    // 3. Claims du JWT (RLS + changement de mot de passe forcé)
+    // 3. Catégories de dépenses par défaut (modele-donnees.md)
+    const DEFAULT_EXPENSE_CATEGORIES = [
+      "Restauration",
+      "Transport",
+      "Bureautique",
+      "Relations",
+      "Divers",
+      "Loyer",
+    ];
+    const { error: categoriesError } = await admin
+      .from("expense_categories")
+      .insert(
+        DEFAULT_EXPENSE_CATEGORIES.map((name) => ({
+          organization_id: org.id,
+          name,
+        }))
+      );
+    if (categoriesError) throw categoriesError;
+
+    // 4. Claims du JWT (RLS + changement de mot de passe forcé)
     const { error: metaError } = await admin.auth.admin.updateUserById(userId, {
       app_metadata: {
         organization_id: org.id,
@@ -105,7 +124,7 @@ async function main() {
     });
     if (metaError) throw metaError;
 
-    // 4. Demande approuvée
+    // 5. Demande approuvée
     const { error: statusError } = await admin
       .from("organization_requests")
       .update({ status: "approved", processed_at: new Date().toISOString() })
@@ -117,7 +136,7 @@ async function main() {
     throw err;
   }
 
-  // 5. « Envoi » des identifiants (v1 : journalisation, pas de SMTP)
+  // 6. « Envoi » des identifiants (v1 : journalisation, pas de SMTP)
   const emailBody = [
     `Bonjour ${request.company_name},`,
     "",
