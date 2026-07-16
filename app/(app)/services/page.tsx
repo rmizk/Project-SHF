@@ -27,7 +27,7 @@ function parseMonthYear(mois?: string, annee?: string): {
 export default async function ServicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mois?: string; annee?: string }>;
+  searchParams: Promise<{ mois?: string; annee?: string; ajouter?: string }>;
 }) {
   const params = await searchParams;
   const { month, year } = parseMonthYear(params.mois, params.annee);
@@ -56,6 +56,7 @@ export default async function ServicesPage({
       clients={clients}
       month={month}
       year={year}
+      initialAddOpen={params.ajouter === "1"}
     />
   );
 }

@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Search } from "lucide-react";
+import { Bell, Plus, Search } from "lucide-react";
 import { NAV_ITEMS, isActivePath } from "./navigation";
+import { monthLabel } from "@/lib/format";
 import ThemeToggle from "./ThemeToggle";
 import { useOrganization } from "./OrganizationProvider";
-import { organizationInitials } from "@/lib/organization-utils";
+import OrgAvatar from "./OrgAvatar";
 
 function pageTitle(pathname: string): string {
   if (pathname.startsWith("/profil")) return "Profil";
@@ -15,13 +16,25 @@ function pageTitle(pathname: string): string {
 }
 
 function pageSubtitle(pathname: string): string | undefined {
+  if (pathname.startsWith("/profil")) return "Organisation";
+  if (pathname === "/") {
+    const now = new Date();
+    return monthLabel(now.getMonth() + 1, now.getFullYear());
+  }
   return NAV_ITEMS.find((i) => isActivePath(pathname, i.href))?.subtitle;
 }
+
+// Actions rapides du tableau de bord : ouvrent les modals des modules
+// (pas de concept d'« écriture »).
+const QUICK_ACTIONS = [
+  { href: "/achats?ajouter=1", label: "Facture", primary: true },
+  { href: "/services?ajouter=1", label: "Attachement", primary: false },
+  { href: "/depenses?ajouter=1", label: "Dépense", primary: false },
+] as const;
 
 export default function TopBar() {
   const pathname = usePathname();
   const organization = useOrganization();
-  const initials = organizationInitials(organization.name);
 
   return (
     <header className="sticky top-0 z-20 border-b border-neutral-200 bg-white dark:border-neutral-800 dark:bg-card-dark">
@@ -52,13 +65,27 @@ export default function TopBar() {
           >
             <Bell size={18} />
           </button>
+          {pathname === "/" &&
+            QUICK_ACTIONS.map((action) => (
+              <Link
+                key={action.href}
+                href={action.href}
+                className={`flex h-9 items-center gap-1.5 rounded-lg px-3.5 text-sm font-bold transition-colors ${
+                  action.primary
+                    ? "bg-brand text-white hover:bg-brand-hover"
+                    : "border border-neutral-200 text-brand hover:bg-brand/5 dark:border-neutral-700"
+                }`}
+              >
+                <Plus size={15} />
+                {action.label}
+              </Link>
+            ))}
           <ThemeToggle />
-          <Link
-            href="/profil"
-            aria-label="Profil de l'organisation"
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand text-xs font-bold text-white"
-          >
-            {initials}
+          <Link href="/profil" aria-label="Profil de l'organisation">
+            <OrgAvatar
+              organization={organization}
+              className="h-9 w-9 rounded-lg text-xs"
+            />
           </Link>
         </div>
       </div>
@@ -78,12 +105,11 @@ export default function TopBar() {
             <Bell size={18} />
           </button>
           <ThemeToggle />
-          <Link
-            href="/profil"
-            aria-label="Profil de l'organisation"
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand text-xs font-bold text-white"
-          >
-            {initials}
+          <Link href="/profil" aria-label="Profil de l'organisation">
+            <OrgAvatar
+              organization={organization}
+              className="h-9 w-9 rounded-lg text-xs"
+            />
           </Link>
         </div>
       </div>

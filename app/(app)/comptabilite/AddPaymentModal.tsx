@@ -4,8 +4,12 @@ import { useActionState, useEffect, useState } from "react";
 import { Check, Loader2, Sparkles } from "lucide-react";
 import Modal from "@/components/Modal";
 import { formatTND, monthLabel } from "@/lib/format";
+import {
+  PAYMENT_TYPE_META,
+  PaymentTypeLabel,
+  type PaymentType,
+} from "@/components/PaymentTypeLabel";
 import { addAccountingPayment, type PaymentFormState } from "./actions";
-import { PAYMENT_TYPE_META, PaymentTypeLabel, type PaymentType } from "./ComptabiliteClient";
 
 const FORM_ID = "ajout-paiement";
 const TYPE_ORDER: PaymentType[] = [

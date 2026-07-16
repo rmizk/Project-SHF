@@ -129,14 +129,17 @@ export default function ServicesClient({
   clients,
   month,
   year,
+  initialAddOpen = false,
 }: {
   attachements: Attachement[];
   clients: Client[];
   month: number;
   year: number;
+  initialAddOpen?: boolean;
 }) {
   const [search, setSearch] = useState("");
-  const [addOpen, setAddOpen] = useState(false);
+  // Ouvert d'emblée depuis les actions rapides du tableau de bord (?ajouter=1)
+  const [addOpen, setAddOpen] = useState(initialAddOpen);
   const [paymentFor, setPaymentFor] = useState<Attachement | null>(null);
 
   const filtered = useMemo(() => {

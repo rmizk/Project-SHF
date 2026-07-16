@@ -86,14 +86,17 @@ export default function DepensesClient({
   categories,
   month,
   year,
+  initialModalOpen = false,
 }: {
   expenses: Expense[];
   categories: Category[];
   month: number;
   year: number;
+  initialModalOpen?: boolean;
 }) {
   const [search, setSearch] = useState("");
-  const [modalOpen, setModalOpen] = useState(false);
+  // Ouvert d'emblée depuis les actions rapides du tableau de bord (?ajouter=1)
+  const [modalOpen, setModalOpen] = useState(initialModalOpen);
 
   const filtered = useMemo(() => {
     const q = normalize(search.trim());

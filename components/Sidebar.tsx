@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { NAV_ITEMS, isActivePath } from "./navigation";
 import { useOrganization } from "./OrganizationProvider";
-import { organizationInitials } from "@/lib/organization-utils";
+import OrgAvatar from "./OrgAvatar";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -60,9 +60,10 @@ export default function Sidebar() {
               : "text-neutral-300 hover:bg-white/5 hover:text-white"
           }`}
         >
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand text-xs font-bold text-white">
-            {organizationInitials(organization.name)}
-          </span>
+          <OrgAvatar
+            organization={organization}
+            className="h-8 w-8 rounded-lg text-xs"
+          />
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-semibold">
               {organization.name}
