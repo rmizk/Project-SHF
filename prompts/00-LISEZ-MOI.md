@@ -1,5 +1,16 @@
 # Prompts Claude Code — mode d'emploi
 
+## ⏯️ REPRENDRE LA SESSION EN COURS
+
+Pour reprendre la session Claude Code là où elle s'est arrêtée (dans `Project SHF/app`) :
+
+```bash
+claude --resume 8724f3b2-1b18-4191-9df2-50511d23c2d7
+```
+
+État au 16/07/2026 : Prompts 0 (socle) ✅, 1 (auth) ✅, 2 (achats) ✅, 3 (services) ✅, 4 (dépenses) ✅, 5 (comptabilité) ✅.
+**Prochain : `06-dashboard-profil.md`** → puis 07-finitions.
+
 ## Avant de commencer
 
 1. Ouvrir un terminal dans `Project SHF/app`
