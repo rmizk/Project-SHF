@@ -8,8 +8,8 @@ Pour reprendre la session Claude Code là où elle s'est arrêtée (dans `Projec
 claude --resume 8724f3b2-1b18-4191-9df2-50511d23c2d7
 ```
 
-État au 16/07/2026 : Prompts 0 (socle) ✅, 1 (auth) ✅, 2 (achats) ✅, 3 (services) ✅, 4 (dépenses) ✅, 5 (comptabilité) ✅, 6 (tableau de bord + profil) ✅.
-**Prochain : `07-finitions.md`**.
+État au 16/07/2026 : Prompts 0 (socle) ✅, 1 (auth) ✅, 2 (achats) ✅, 3 (services) ✅, 4 (dépenses) ✅, 5 (comptabilité) ✅, 6 (tableau de bord + profil) ✅, 7 (finitions) ✅.
+**La série de prompts est terminée** — prochaine étape : déploiement Vercel.
 
 ## Avant de commencer
 

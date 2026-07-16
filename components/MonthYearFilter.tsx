@@ -71,7 +71,7 @@ export default function MonthYearFilter({
               type="button"
               onClick={() => setPanelYear((y) => y - 1)}
               aria-label="Année précédente"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+              className="flex h-11 w-11 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
             >
               <ChevronLeft size={18} />
             </button>
@@ -80,7 +80,7 @@ export default function MonthYearFilter({
               type="button"
               onClick={() => setPanelYear((y) => y + 1)}
               aria-label="Année suivante"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+              className="flex h-11 w-11 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
             >
               <ChevronRight size={18} />
             </button>
@@ -93,7 +93,7 @@ export default function MonthYearFilter({
                   key={m}
                   type="button"
                   onClick={() => select(m)}
-                  className={`rounded-lg px-2 py-2 text-sm font-medium transition-colors ${
+                  className={`rounded-lg px-2 py-3 text-sm font-medium transition-colors ${
                     active
                       ? "bg-brand text-white"
                       : "text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"

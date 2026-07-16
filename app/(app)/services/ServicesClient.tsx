@@ -99,7 +99,7 @@ function RowMenu({
         onClick={() => setOpen((o) => !o)}
         aria-label={`Actions pour ${attachement.client.name}`}
         aria-expanded={open}
-        className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800"
+        className="flex h-11 w-11 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600 lg:h-9 lg:w-9 dark:hover:bg-neutral-800"
       >
         <MoreVertical size={17} />
       </button>
@@ -236,8 +236,8 @@ export default function ServicesClient({
         </button>
       </div>
 
-      {/* Liste */}
-      <div className="mt-4">
+      {/* Liste — pb-20 : le bouton flottant mobile ne recouvre pas la dernière ligne */}
+      <div className="mt-4 pb-20 lg:pb-0">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center rounded-2xl bg-white px-6 py-16 text-center shadow-sm shadow-neutral-900/5 dark:bg-card-dark">
             <span className="flex h-24 w-24 items-center justify-center rounded-3xl bg-neutral-100 dark:bg-neutral-800">

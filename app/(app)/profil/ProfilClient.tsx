@@ -391,7 +391,7 @@ function CategoryChip({ category }: { category: Category }) {
           type="submit"
           disabled={renamePending}
           aria-label="Enregistrer le nouveau nom"
-          className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand text-white transition-colors hover:bg-brand-hover disabled:opacity-60"
+          className="flex h-11 w-11 items-center justify-center rounded-lg bg-brand text-white transition-colors hover:bg-brand-hover disabled:opacity-60 lg:h-8 lg:w-8"
         >
           {renamePending ? (
             <Loader2 size={14} className="animate-spin" />
@@ -406,7 +406,7 @@ function CategoryChip({ category }: { category: Category }) {
             setName(category.name);
           }}
           aria-label="Annuler le renommage"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          className="flex h-11 w-11 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 lg:h-8 lg:w-8 dark:hover:bg-neutral-800"
         >
           <X size={14} />
         </button>
@@ -426,7 +426,7 @@ function CategoryChip({ category }: { category: Category }) {
         type="button"
         onClick={() => setEditing(true)}
         aria-label={`Renommer la catégorie ${category.name}`}
-        className="ml-1 flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-800"
+        className="ml-1 flex h-11 w-11 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-200 lg:h-8 lg:w-8 dark:hover:bg-neutral-800"
       >
         <Pencil size={14} />
       </button>
@@ -440,7 +440,7 @@ function CategoryChip({ category }: { category: Category }) {
             }
           }}
           aria-label={`Supprimer la catégorie ${category.name}`}
-          className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-500 transition-colors hover:bg-red-100 dark:bg-red-950/50 dark:hover:bg-red-950"
+          className="flex h-11 w-11 items-center justify-center rounded-lg bg-red-50 text-red-500 transition-colors hover:bg-red-100 lg:h-8 lg:w-8 dark:bg-red-950/50 dark:hover:bg-red-950"
         >
           <Trash2 size={14} />
         </button>

@@ -63,7 +63,7 @@ function TypeBadge({ type }: { type: ExpenseType }) {
 function AttachmentButton({ expense }: { expense: Expense }) {
   if (!expense.attachment_path) {
     return (
-      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100 text-neutral-400 dark:bg-neutral-800">
+      <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-neutral-100 text-neutral-400 lg:h-9 lg:w-9 dark:bg-neutral-800">
         —
       </span>
     );
@@ -74,7 +74,7 @@ function AttachmentButton({ expense }: { expense: Expense }) {
       target="_blank"
       rel="noopener"
       aria-label={`Pièce jointe de la dépense ${expense.name}`}
-      className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand transition-colors hover:bg-brand/20"
+      className="flex h-11 w-11 items-center justify-center rounded-lg bg-brand/10 text-brand transition-colors hover:bg-brand/20 lg:h-9 lg:w-9"
     >
       <Paperclip size={16} />
     </a>
@@ -177,8 +177,8 @@ export default function DepensesClient({
         </button>
       </div>
 
-      {/* Liste */}
-      <div className="mt-4">
+      {/* Liste — pb-20 : le bouton flottant mobile ne recouvre pas la dernière ligne */}
+      <div className="mt-4 pb-20 lg:pb-0">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center rounded-2xl bg-white px-6 py-16 text-center shadow-sm shadow-neutral-900/5 dark:bg-card-dark">
             <span className="flex h-24 w-24 items-center justify-center rounded-3xl bg-neutral-100 dark:bg-neutral-800">

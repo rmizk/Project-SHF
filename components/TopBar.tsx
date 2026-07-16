@@ -61,7 +61,7 @@ export default function TopBar() {
           <button
             type="button"
             aria-label="Notifications"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
           >
             <Bell size={18} />
           </button>
@@ -81,7 +81,11 @@ export default function TopBar() {
               </Link>
             ))}
           <ThemeToggle />
-          <Link href="/profil" aria-label="Profil de l'organisation">
+          <Link
+            href="/profil"
+            aria-label="Profil de l'organisation"
+            className="flex h-11 w-11 items-center justify-center"
+          >
             <OrgAvatar
               organization={organization}
               className="h-9 w-9 rounded-lg text-xs"
@@ -100,12 +104,16 @@ export default function TopBar() {
           <button
             type="button"
             aria-label="Notifications"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
           >
             <Bell size={18} />
           </button>
           <ThemeToggle />
-          <Link href="/profil" aria-label="Profil de l'organisation">
+          <Link
+            href="/profil"
+            aria-label="Profil de l'organisation"
+            className="flex h-11 w-11 items-center justify-center"
+          >
             <OrgAvatar
               organization={organization}
               className="h-9 w-9 rounded-lg text-xs"
