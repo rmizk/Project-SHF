@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   BadgeCheck,
-  MoreVertical,
+  Pencil,
   Plus,
   Search,
+  Trash2,
   Wrench,
 } from "lucide-react";
 import MonthYearFilter from "@/components/MonthYearFilter";
 import DataTable, { type Column } from "@/components/DataTable";
 import StatusBadge from "@/components/StatusBadge";
+import RowActionsMenu from "@/components/RowActionsMenu";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import {
   formatShortDate,
   formatTND,
@@ -19,6 +22,7 @@ import {
 } from "@/lib/format";
 import AddAttachementModal from "./AddAttachementModal";
 import PaymentModal from "./PaymentModal";
+import { deleteAttachement } from "./actions";
 
 export type Client = { id: string; name: string };
 
@@ -71,56 +75,40 @@ function NetProfit({ attachement }: { attachement: Attachement }) {
   return <span className="text-neutral-300 dark:text-neutral-600">—</span>;
 }
 
-// Menu « ⋮ » d'une ligne : enregistre le paiement (en attente) ou
-// modifie les retenues (payé).
-function RowMenu({
+// Menu « ⋮ » d'une ligne : paiement/retenues + modifier + supprimer,
+// via le RowActionsMenu partagé (portal : jamais rogné par l'overflow).
+function AttachementMenu({
   attachement,
   onRecordPayment,
+  onEdit,
+  onDelete,
 }: {
   attachement: Attachement;
   onRecordPayment: (a: Attachement) => void;
+  onEdit: (a: Attachement) => void;
+  onDelete: (a: Attachement) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onClick = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, [open]);
-
   return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-label={`Actions pour ${attachement.client.name}`}
-        aria-expanded={open}
-        className="flex h-11 w-11 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600 lg:h-9 lg:w-9 dark:hover:bg-neutral-800"
-      >
-        <MoreVertical size={17} />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full z-30 mt-1 w-60 overflow-hidden rounded-xl border border-neutral-200 bg-white py-1 shadow-xl shadow-neutral-900/10 dark:border-neutral-700 dark:bg-card-dark">
-          <button
-            type="button"
-            onClick={() => {
-              setOpen(false);
-              onRecordPayment(attachement);
-            }}
-            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-semibold transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800"
-          >
-            <BadgeCheck size={16} className="text-emerald-600" />
-            {attachement.status === "pending"
+    <RowActionsMenu
+      label={`Actions pour ${attachement.client.name}`}
+      actions={[
+        {
+          label:
+            attachement.status === "pending"
               ? "Enregistrer le paiement"
-              : "Modifier les retenues"}
-          </button>
-        </div>
-      )}
-    </div>
+              : "Modifier les retenues",
+          icon: BadgeCheck,
+          onSelect: () => onRecordPayment(attachement),
+        },
+        { label: "Modifier", icon: Pencil, onSelect: () => onEdit(attachement) },
+        {
+          label: "Supprimer",
+          icon: Trash2,
+          variant: "danger",
+          onSelect: () => onDelete(attachement),
+        },
+      ]}
+    />
   );
 }
 
@@ -141,6 +129,8 @@ export default function ServicesClient({
   // Ouvert d'emblée depuis les actions rapides du tableau de bord (?ajouter=1)
   const [addOpen, setAddOpen] = useState(initialAddOpen);
   const [paymentFor, setPaymentFor] = useState<Attachement | null>(null);
+  const [editing, setEditing] = useState<Attachement | null>(null);
+  const [deleting, setDeleting] = useState<Attachement | null>(null);
 
   const filtered = useMemo(() => {
     const q = normalize(search.trim());
@@ -201,7 +191,12 @@ export default function ServicesClient({
       header: "",
       className: "w-12",
       render: (a) => (
-        <RowMenu attachement={a} onRecordPayment={setPaymentFor} />
+        <AttachementMenu
+          attachement={a}
+          onRecordPayment={setPaymentFor}
+          onEdit={setEditing}
+          onDelete={setDeleting}
+        />
       ),
     },
   ];
@@ -314,6 +309,12 @@ export default function ServicesClient({
                         <StatusBadge variant="warning">En attente</StatusBadge>
                       )}
                     </button>
+                    <AttachementMenu
+                      attachement={a}
+                      onRecordPayment={setPaymentFor}
+                      onEdit={setEditing}
+                      onDelete={setDeleting}
+                    />
                   </div>
                   <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3 dark:border-neutral-800">
                     <p className="text-sm text-neutral-500 dark:text-neutral-400">
@@ -363,6 +364,27 @@ export default function ServicesClient({
         <PaymentModal
           attachement={paymentFor}
           onClose={() => setPaymentFor(null)}
+        />
+      )}
+      {editing && (
+        <AddAttachementModal
+          clients={clients}
+          month={month}
+          year={year}
+          attachement={editing}
+          onClose={() => setEditing(null)}
+        />
+      )}
+      {deleting && (
+        <ConfirmDialog
+          title={`Supprimer l'attachement de ${deleting.client.name} ?`}
+          message={`L'attachement du ${formatShortDate(deleting.attachement_date)} (${formatTND(deleting.amount_ht)} TND HT) et ses retenues seront définitivement supprimés. Cette action est irréversible.`}
+          onConfirm={async () => {
+            const result = await deleteAttachement(deleting.id);
+            if (!result.error) setDeleting(null);
+            return result;
+          }}
+          onClose={() => setDeleting(null)}
         />
       )}
     </div>

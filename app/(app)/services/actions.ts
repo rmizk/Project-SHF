@@ -90,6 +90,144 @@ export async function addAttachement(
 }
 
 // ------------------------------------------------------------
+// Modification d'un attachement (l'état et le paiement restent gérés
+// par la modal de paiement ; si l'attachement est payé, le bénéfice net
+// est recalculé côté serveur depuis les retenues existantes)
+// ------------------------------------------------------------
+export async function updateAttachement(
+  _prev: AttachementFormState,
+  formData: FormData
+): Promise<AttachementFormState> {
+  const organization = await getCurrentOrganization();
+  if (!organization) redirect("/connexion");
+
+  const attachementId = String(formData.get("attachement_id") ?? "");
+  const clientName = String(formData.get("client_name") ?? "").trim();
+  const amountRaw = String(formData.get("amount_ht") ?? "").trim();
+  const attachementDate = String(formData.get("attachement_date") ?? "");
+  const vatRate = Number(formData.get("vat_rate"));
+
+  if (!attachementId) return { error: "Attachement introuvable. Rechargez la page." };
+  if (!clientName) return { error: "Saisissez le nom du client." };
+  const amountHt = amountRaw ? parseAmount(amountRaw) : null;
+  if (amountHt === null) {
+    return { error: "Montant HT invalide : utilisez un nombre positif (3 décimales max)." };
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(attachementDate)) {
+    return { error: "Saisissez la date de l'attachement." };
+  }
+  if (!VAT_RATES.includes(vatRate)) {
+    return { error: "Sélectionnez un taux de TVA (0, 7, 13 ou 19 %)." };
+  }
+
+  const supabase = await createClient();
+
+  // L'attachement doit appartenir à l'organisation (la RLS filtre déjà)
+  const { data: existing } = await supabase
+    .from("attachements")
+    .select("id, status")
+    .eq("id", attachementId)
+    .eq("organization_id", organization.id)
+    .maybeSingle();
+  if (!existing) return { error: "Attachement introuvable. Rechargez la page." };
+
+  // Client : réutilisé s'il existe, créé à la volée sinon
+  let clientId: string;
+  const { data: existingClient } = await supabase
+    .from("clients")
+    .select("id")
+    .eq("organization_id", organization.id)
+    .eq("name", clientName)
+    .maybeSingle();
+
+  if (existingClient) {
+    clientId = existingClient.id;
+  } else {
+    const { data: created, error: clientError } = await supabase
+      .from("clients")
+      .insert({ organization_id: organization.id, name: clientName })
+      .select("id")
+      .single();
+    if (clientError || !created) {
+      return { error: "Impossible d'enregistrer le client. Réessayez." };
+    }
+    clientId = created.id;
+  }
+
+  // Attachement payé : le montant HT a pu changer, le bénéfice net est
+  // recalculé depuis les retenues existantes (calcul serveur, millimes)
+  let netProfit: string | null | undefined;
+  if (existing.status === "paid") {
+    const { data: deductions } = await supabase
+      .from("attachement_deductions")
+      .select("amount")
+      .eq("attachement_id", attachementId);
+    const totalMillimes = (deductions ?? []).reduce(
+      (sum, d) => sum + toMillimes(d.amount),
+      0
+    );
+    const htMillimes = toMillimes(amountHt);
+    if (totalMillimes > htMillimes) {
+      return {
+        error:
+          "Le nouveau montant HT est inférieur au total des retenues déjà enregistrées.",
+      };
+    }
+    netProfit = fromMillimes(htMillimes - totalMillimes);
+  }
+
+  const { error: updateError } = await supabase
+    .from("attachements")
+    .update({
+      client_id: clientId,
+      amount_ht: amountHt,
+      vat_rate: vatRate,
+      attachement_date: attachementDate,
+      ...(netProfit !== undefined ? { net_profit: netProfit } : {}),
+    })
+    .eq("id", attachementId)
+    .eq("organization_id", organization.id);
+
+  if (updateError) {
+    return { error: "L'enregistrement de l'attachement a échoué. Réessayez." };
+  }
+
+  revalidatePath("/services");
+  return { success: true };
+}
+
+// ------------------------------------------------------------
+// Suppression d'un attachement (les retenues suivent en cascade)
+// ------------------------------------------------------------
+export async function deleteAttachement(
+  attachementId: string
+): Promise<{ error?: string }> {
+  const organization = await getCurrentOrganization();
+  if (!organization) redirect("/connexion");
+
+  const supabase = await createClient();
+  const { data: attachement } = await supabase
+    .from("attachements")
+    .select("id")
+    .eq("id", attachementId)
+    .eq("organization_id", organization.id)
+    .maybeSingle();
+  if (!attachement) return { error: "Attachement introuvable. Rechargez la page." };
+
+  const { error: deleteError } = await supabase
+    .from("attachements")
+    .delete()
+    .eq("id", attachementId)
+    .eq("organization_id", organization.id);
+  if (deleteError) {
+    return { error: "La suppression de l'attachement a échoué. Réessayez." };
+  }
+
+  revalidatePath("/services");
+  return {};
+}
+
+// ------------------------------------------------------------
 // Enregistrement du paiement : retenues ligne par ligne, bénéfice net
 // calculé CÔTÉ SERVEUR (règle métier n°5) en millimes entiers.
 // ------------------------------------------------------------

@@ -13,7 +13,7 @@
   --color-brand: #3b5bfd; /* bleu principal (actions, item actif) */
   --color-brand-hover: #2f4be0;
   --color-accent: #c8f24e; /* vert lime du logo */
-  --color-sidebar: #0c0d10; /* sidebar sombre sur les deux thèmes */
+  --color-sidebar: #0c0d10; /* sidebar en mode sombre (claire en mode clair) */
   --color-surface-light: #f5f6f8; /* fond de page clair */
   --color-surface-dark: #101114; /* fond de page sombre */
   --color-card-dark: #17181c; /* cartes en mode sombre */

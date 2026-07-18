@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { FileText, Paperclip, Plus, Search } from "lucide-react";
+import { FileText, Paperclip, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import MonthYearFilter from "@/components/MonthYearFilter";
 import DataTable, { type Column } from "@/components/DataTable";
+import RowActionsMenu from "@/components/RowActionsMenu";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import {
   formatShortDate,
   formatTND,
@@ -11,6 +13,7 @@ import {
   monthName,
 } from "@/lib/format";
 import AddInvoiceModal from "./AddInvoiceModal";
+import { deletePurchaseInvoice } from "./actions";
 
 export type Supplier = { id: string; name: string };
 
@@ -81,6 +84,8 @@ export default function AchatsClient({
   const [search, setSearch] = useState("");
   // Ouvert d'emblée depuis les actions rapides du tableau de bord (?ajouter=1)
   const [modalOpen, setModalOpen] = useState(initialModalOpen);
+  const [editing, setEditing] = useState<Invoice | null>(null);
+  const [deleting, setDeleting] = useState<Invoice | null>(null);
 
   const filtered = useMemo(() => {
     const q = normalize(search.trim());
@@ -140,6 +145,25 @@ export default function AchatsClient({
       key: "attachment",
       header: "Pièce",
       render: (inv) => <AttachmentButton invoice={inv} />,
+    },
+    {
+      key: "actions",
+      header: "",
+      className: "w-12",
+      render: (inv) => (
+        <RowActionsMenu
+          label={`Actions pour la facture ${inv.invoice_number}`}
+          actions={[
+            { label: "Modifier", icon: Pencil, onSelect: () => setEditing(inv) },
+            {
+              label: "Supprimer",
+              icon: Trash2,
+              variant: "danger",
+              onSelect: () => setDeleting(inv),
+            },
+          ]}
+        />
+      ),
     },
   ];
 
@@ -236,6 +260,22 @@ export default function AchatsClient({
                       </p>
                     </div>
                     {inv.attachment_path && <AttachmentButton invoice={inv} />}
+                    <RowActionsMenu
+                      label={`Actions pour la facture ${inv.invoice_number}`}
+                      actions={[
+                        {
+                          label: "Modifier",
+                          icon: Pencil,
+                          onSelect: () => setEditing(inv),
+                        },
+                        {
+                          label: "Supprimer",
+                          icon: Trash2,
+                          variant: "danger",
+                          onSelect: () => setDeleting(inv),
+                        },
+                      ]}
+                    />
                   </div>
                   <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3 dark:border-neutral-800">
                     <p className="text-sm text-neutral-500 dark:text-neutral-400">
@@ -267,6 +307,27 @@ export default function AchatsClient({
           month={month}
           year={year}
           onClose={() => setModalOpen(false)}
+        />
+      )}
+      {editing && (
+        <AddInvoiceModal
+          suppliers={suppliers}
+          month={month}
+          year={year}
+          invoice={editing}
+          onClose={() => setEditing(null)}
+        />
+      )}
+      {deleting && (
+        <ConfirmDialog
+          title={`Supprimer la facture ${deleting.invoice_number} ?`}
+          message={`La facture de ${deleting.supplier.name} et sa pièce jointe éventuelle seront définitivement supprimées. Cette action est irréversible.`}
+          onConfirm={async () => {
+            const result = await deletePurchaseInvoice(deleting.id);
+            if (!result.error) setDeleting(null);
+            return result;
+          }}
+          onClose={() => setDeleting(null)}
         />
       )}
     </div>

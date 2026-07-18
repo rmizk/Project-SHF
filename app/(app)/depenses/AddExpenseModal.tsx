@@ -12,9 +12,15 @@ import {
 } from "lucide-react";
 import Modal from "@/components/Modal";
 import FileDropzone from "@/components/FileDropzone";
-import { monthLabel } from "@/lib/format";
-import { addExpense, type ExpenseFormState } from "./actions";
-import { TYPE_LABELS, type Category, type ExpenseType } from "./DepensesClient";
+import DatePicker from "@/components/DatePicker";
+import { formatTND, monthLabel } from "@/lib/format";
+import { addExpense, updateExpense, type ExpenseFormState } from "./actions";
+import {
+  TYPE_LABELS,
+  type Category,
+  type Expense,
+  type ExpenseType,
+} from "./DepensesClient";
 
 const FORM_ID = "ajout-depense";
 
@@ -28,19 +34,22 @@ export default function AddExpenseModal({
   categories,
   month,
   year,
+  expense,
   onClose,
 }: {
   categories: Category[];
   month: number;
   year: number;
+  expense?: Expense; // fourni : le modal passe en mode « Modifier »
   onClose: () => void;
 }) {
+  const editing = Boolean(expense);
   const [state, formAction, isPending] = useActionState<
     ExpenseFormState,
     FormData
-  >(addExpense, {});
+  >(expense ? updateExpense : addExpense, {});
 
-  const [type, setType] = useState<ExpenseType>("with_invoice");
+  const [type, setType] = useState<ExpenseType>(expense?.type ?? "with_invoice");
 
   useEffect(() => {
     if (state.success) onClose();
@@ -51,9 +60,11 @@ export default function AddExpenseModal({
   const now = new Date();
   const isCurrentMonth =
     now.getMonth() + 1 === month && now.getFullYear() === year;
-  const defaultDate = isCurrentMonth
-    ? `${year}-${String(month).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
-    : `${year}-${String(month).padStart(2, "0")}-01`;
+  const defaultDate =
+    expense?.expense_date ??
+    (isCurrentMonth
+      ? `${year}-${String(month).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+      : `${year}-${String(month).padStart(2, "0")}-01`);
 
   const inputClass =
     "h-12 w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 text-sm outline-none transition-colors placeholder:text-neutral-400 focus:border-brand focus:bg-white dark:border-neutral-700 dark:bg-neutral-900 dark:focus:bg-neutral-900";
@@ -64,7 +75,7 @@ export default function AddExpenseModal({
     <Modal
       open
       onClose={onClose}
-      title="Ajouter une dépense"
+      title={editing ? `Modifier la dépense — ${expense?.name}` : "Ajouter une dépense"}
       subtitle={`Frais & charges · ${monthLabel(month, year)}`}
       footer={
         <div className="flex gap-3">
@@ -95,6 +106,14 @@ export default function AddExpenseModal({
       }
     >
       <div className="space-y-5">
+        {expense && (
+          <input
+            type="hidden"
+            name="expense_id"
+            value={expense.id}
+            form={FORM_ID}
+          />
+        )}
         {state.error && (
           <p
             role="alert"
@@ -139,7 +158,7 @@ export default function AddExpenseModal({
               name="category_id"
               form={FORM_ID}
               required
-              defaultValue={categories[0]?.id ?? ""}
+              defaultValue={expense?.category.id ?? categories[0]?.id ?? ""}
               className={`${inputClass} appearance-none pr-11`}
             >
               {categories.length === 0 && (
@@ -169,6 +188,7 @@ export default function AddExpenseModal({
             id="name"
             name="name"
             form={FORM_ID}
+            defaultValue={expense?.name}
             placeholder="Ex. Repas équipe"
             required
             className={inputClass}
@@ -186,6 +206,7 @@ export default function AddExpenseModal({
                 id="amount"
                 name="amount"
                 form={FORM_ID}
+                defaultValue={expense ? formatTND(expense.amount) : undefined}
                 inputMode="decimal"
                 placeholder="0,000"
                 required
@@ -201,14 +222,12 @@ export default function AddExpenseModal({
             <label htmlFor="expense_date" className={labelClass}>
               Date
             </label>
-            <input
+            <DatePicker
               id="expense_date"
               name="expense_date"
-              form={FORM_ID}
-              type="date"
+              formId={FORM_ID}
               defaultValue={defaultDate}
               required
-              className={inputClass}
             />
           </div>
         </div>
@@ -223,6 +242,12 @@ export default function AddExpenseModal({
               </span>
             </span>
             <FileDropzone name="attachment" formId={FORM_ID} />
+            {editing && expense?.attachment_path && (
+              <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+                Une pièce est déjà jointe : déposez un nouveau fichier pour la
+                remplacer, ou ne touchez à rien pour la conserver.
+              </p>
+            )}
           </div>
         ) : (
           <div className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3.5 text-sm text-neutral-600 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400">

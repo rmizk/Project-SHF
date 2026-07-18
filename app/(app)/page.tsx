@@ -139,7 +139,8 @@ export default async function TableauDeBordPage() {
     await Promise.all([
       supabase
         .from("working_capital_history")
-        .select("amount, created_at")
+        .select("amount, created_at, effective_date")
+        .order("effective_date", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(100),
       supabase
@@ -200,11 +201,27 @@ export default async function TableauDeBordPage() {
     created_at: string;
   }[];
 
-  // --- Carte 1 : fond de roulement (dernière saisie + comparaison avec la
-  // dernière saisie antérieure au mois courant) --------------------------
-  const capitalRows = capitalRes.data ?? [];
+  // --- Carte 1 : fond de roulement (dernière saisie par date d'effet +
+  // comparaison avec la dernière saisie antérieure au mois courant).
+  // Repli transitoire par date de création si la migration
+  // « effective_date » n'est pas encore appliquée.
+  let capitalRows = (capitalRes.data ?? []) as {
+    amount: string | number;
+    created_at: string;
+    effective_date?: string | null;
+  }[];
+  if (capitalRes.error) {
+    const fallback = await supabase
+      .from("working_capital_history")
+      .select("amount, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    capitalRows = (fallback.data ?? []) as typeof capitalRows;
+  }
+  const capitalDate = (r: (typeof capitalRows)[number]) =>
+    r.effective_date ?? String(r.created_at).slice(0, 10);
   const currentCapital = capitalRows[0] ? toMillimes(capitalRows[0].amount) : null;
-  const previousCapitalRow = capitalRows.find((r) => r.created_at < start);
+  const previousCapitalRow = capitalRows.find((r) => capitalDate(r) < start);
   const previousCapital = previousCapitalRow ? toMillimes(previousCapitalRow.amount) : null;
 
   // --- Carte 2 : TVA du mois (règle métier n°4, en millimes entiers) ----

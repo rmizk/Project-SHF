@@ -31,8 +31,8 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Wrench,
     subtitle: "Attachements clients",
   },
-  { href: "/comptabilite", label: "Comptabilité", shortLabel: "Compta", icon: FileText },
   { href: "/depenses", label: "Dépenses", shortLabel: "Dépenses", icon: DollarSign },
+  { href: "/comptabilite", label: "Comptabilité", shortLabel: "Compta", icon: FileText },
 ];
 
 export function isActivePath(pathname: string, href: string): boolean {

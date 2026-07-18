@@ -1,11 +1,23 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { FileText, Paperclip, Plus, Search, User, Wallet } from "lucide-react";
+import {
+  FileText,
+  Paperclip,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  User,
+  Wallet,
+} from "lucide-react";
 import MonthYearFilter from "@/components/MonthYearFilter";
 import DataTable, { type Column } from "@/components/DataTable";
+import RowActionsMenu from "@/components/RowActionsMenu";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { formatShortDate, formatTND, monthName } from "@/lib/format";
 import AddExpenseModal from "./AddExpenseModal";
+import { deleteExpense } from "./actions";
 
 export type ExpenseType = "with_invoice" | "without_invoice" | "personal";
 
@@ -97,6 +109,8 @@ export default function DepensesClient({
   const [search, setSearch] = useState("");
   // Ouvert d'emblée depuis les actions rapides du tableau de bord (?ajouter=1)
   const [modalOpen, setModalOpen] = useState(initialModalOpen);
+  const [editing, setEditing] = useState<Expense | null>(null);
+  const [deleting, setDeleting] = useState<Expense | null>(null);
 
   const filtered = useMemo(() => {
     const q = normalize(search.trim());
@@ -144,6 +158,25 @@ export default function DepensesClient({
       key: "attachment",
       header: "Pièce",
       render: (exp) => <AttachmentButton expense={exp} />,
+    },
+    {
+      key: "actions",
+      header: "",
+      className: "w-12",
+      render: (exp) => (
+        <RowActionsMenu
+          label={`Actions pour la dépense ${exp.name}`}
+          actions={[
+            { label: "Modifier", icon: Pencil, onSelect: () => setEditing(exp) },
+            {
+              label: "Supprimer",
+              icon: Trash2,
+              variant: "danger",
+              onSelect: () => setDeleting(exp),
+            },
+          ]}
+        />
+      ),
     },
   ];
 
@@ -239,6 +272,22 @@ export default function DepensesClient({
                       </p>
                     </div>
                     {exp.attachment_path && <AttachmentButton expense={exp} />}
+                    <RowActionsMenu
+                      label={`Actions pour la dépense ${exp.name}`}
+                      actions={[
+                        {
+                          label: "Modifier",
+                          icon: Pencil,
+                          onSelect: () => setEditing(exp),
+                        },
+                        {
+                          label: "Supprimer",
+                          icon: Trash2,
+                          variant: "danger",
+                          onSelect: () => setDeleting(exp),
+                        },
+                      ]}
+                    />
                   </div>
                   <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3 dark:border-neutral-800">
                     <TypeBadge type={exp.type} />
@@ -267,6 +316,27 @@ export default function DepensesClient({
           month={month}
           year={year}
           onClose={() => setModalOpen(false)}
+        />
+      )}
+      {editing && (
+        <AddExpenseModal
+          categories={categories}
+          month={month}
+          year={year}
+          expense={editing}
+          onClose={() => setEditing(null)}
+        />
+      )}
+      {deleting && (
+        <ConfirmDialog
+          title={`Supprimer la dépense « ${deleting.name} » ?`}
+          message={`La dépense du ${formatShortDate(deleting.expense_date)} (${formatTND(deleting.amount)} TND) et sa pièce jointe éventuelle seront définitivement supprimées. Cette action est irréversible.`}
+          onConfirm={async () => {
+            const result = await deleteExpense(deleting.id);
+            if (!result.error) setDeleting(null);
+            return result;
+          }}
+          onClose={() => setDeleting(null)}
         />
       )}
     </div>

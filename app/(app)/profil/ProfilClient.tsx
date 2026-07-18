@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import {
   Building2,
   Check,
+  ChevronDown,
   LineChart,
   Loader2,
   Pencil,
@@ -14,15 +15,17 @@ import {
 } from "lucide-react";
 import { useOrganization } from "@/components/OrganizationProvider";
 import OrgAvatar from "@/components/OrgAvatar";
+import Modal from "@/components/Modal";
+import DatePicker from "@/components/DatePicker";
 import { formatShortDate, formatTND } from "@/lib/format";
 import { fromMillimes } from "@/lib/amounts";
 import {
   addExpenseCategory,
+  addWorkingCapitalEntry,
   changeOwnPassword,
   deleteExpenseCategory,
   renameExpenseCategory,
   updateOrganizationName,
-  updateWorkingCapital,
   uploadLogo,
   type ProfilFormState,
 } from "./actions";
@@ -255,15 +258,116 @@ function OrganizationCard() {
 }
 
 // ------------------------------------------------------------
-// Carte « Fond de roulement » : montant actuel + historique
+// Carte « Fond de roulement » : montant actuel + « + Ajouter »
+// (modal montant + date) + historique scrollable (4 lignes max)
 // ------------------------------------------------------------
-function WorkingCapitalCard({ history }: { history: CapitalEntry[] }) {
+const CAPITAL_FORM_ID = "ajout-fond-roulement";
+
+function AddCapitalModal({
+  current,
+  onClose,
+}: {
+  current: CapitalEntry | null;
+  onClose: () => void;
+}) {
   const [state, formAction, isPending] = useActionState<ProfilFormState, FormData>(
-    updateWorkingCapital,
+    addWorkingCapitalEntry,
     {}
   );
-  const current = history[0] ? formatTND(history[0].amount) : "";
-  const [amount, setAmount] = useState(current);
+
+  useEffect(() => {
+    if (state.success) onClose();
+  }, [state.success, onClose]);
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Ajouter au fond de roulement"
+      subtitle="Nouveau montant de référence de la trésorerie"
+      footer={
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-12 flex-1 rounded-xl border border-neutral-200 text-sm font-bold transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+          >
+            Annuler
+          </button>
+          <form action={formAction} id={CAPITAL_FORM_ID} className="contents" />
+          <button
+            type="submit"
+            form={CAPITAL_FORM_ID}
+            disabled={isPending}
+            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-brand px-5 text-sm font-bold text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isPending ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <>
+                <Check size={18} />
+                Enregistrer
+              </>
+            )}
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-5">
+        {state.error && (
+          <p
+            role="alert"
+            className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-300"
+          >
+            {state.error}
+          </p>
+        )}
+
+        <div>
+          <label htmlFor="capital-amount" className={labelClass}>
+            Nouveau montant
+          </label>
+          <div className="relative">
+            <input
+              id="capital-amount"
+              name="amount"
+              form={CAPITAL_FORM_ID}
+              inputMode="decimal"
+              placeholder="0,000"
+              required
+              className={`${inputClass} pr-14`}
+            />
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-neutral-500">
+              TND
+            </span>
+          </div>
+          {current && (
+            <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+              Montant actuel : {formatTND(current.amount)} TND — un montant
+              identique ne sera pas enregistré.
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="capital-date" className={labelClass}>
+            Date de la mise à jour
+          </label>
+          <DatePicker
+            id="capital-date"
+            name="effective_date"
+            formId={CAPITAL_FORM_ID}
+            required
+          />
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function WorkingCapitalCard({ history }: { history: CapitalEntry[] }) {
+  const [modalOpen, setModalOpen] = useState(false);
+  const current = history[0] ?? null;
 
   return (
     <section className={cardClass}>
@@ -271,55 +375,41 @@ function WorkingCapitalCard({ history }: { history: CapitalEntry[] }) {
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand/10 text-brand">
           <LineChart size={20} />
         </span>
-        <div>
+        <div className="min-w-0 flex-1">
           <h2 className="text-lg font-extrabold">Fond de roulement</h2>
           <p className="text-sm text-neutral-500 dark:text-neutral-400">
             Capital de trésorerie de référence
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => setModalOpen(true)}
+          className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-brand px-4 text-sm font-bold text-white transition-colors hover:bg-brand-hover"
+        >
+          <Plus size={16} />
+          Ajouter
+        </button>
       </div>
 
-      <form action={formAction} className="mt-6">
-        <label htmlFor="capital-amount" className={labelClass}>
-          Montant actuel
-        </label>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="relative flex-1">
-            <input
-              id="capital-amount"
-              name="amount"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              inputMode="decimal"
-              placeholder="0,000"
-              required
-              className={`${inputClass} pr-14 text-right font-bold`}
-            />
-            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-neutral-500">
-              TND
-            </span>
-          </div>
-          <button
-            type="submit"
-            disabled={isPending}
-            className="flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-brand px-5 text-sm font-bold text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isPending && <Loader2 size={16} className="animate-spin" />}
-            Mettre à jour
-          </button>
-        </div>
-      </form>
-      <ErrorText state={state} />
+      <p className="mt-6 text-sm font-semibold text-neutral-500 dark:text-neutral-400">
+        Montant actuel
+      </p>
+      <p className="mt-1 text-3xl font-extrabold tracking-tight">
+        {current ? formatTND(current.amount) : "—"}
+        <span className="ml-1.5 text-base font-bold text-neutral-400">TND</span>
+      </p>
 
       <h3 className="mt-7 text-xs font-semibold uppercase tracking-widest text-neutral-400">
         Historique des modifications
       </h3>
       {history.length === 0 ? (
         <p className="mt-3 text-sm text-neutral-500 dark:text-neutral-400">
-          Aucune saisie pour l&apos;instant : renseignez le montant ci-dessus.
+          Aucune saisie pour l&apos;instant : utilisez «&nbsp;Ajouter&nbsp;»
+          ci-dessus.
         </p>
       ) : (
-        <ul className="mt-2 divide-y divide-neutral-100 dark:divide-neutral-800">
+        // 4 lignes visibles au plus, défilement interne au-delà
+        <ul className="mt-2 max-h-[280px] divide-y divide-neutral-100 overflow-y-auto dark:divide-neutral-800">
           {history.map((entry) => (
             <li key={entry.id} className="flex items-center gap-3 py-3.5">
               <span className="h-2 w-2 shrink-0 rounded-full bg-brand" />
@@ -346,6 +436,10 @@ function WorkingCapitalCard({ history }: { history: CapitalEntry[] }) {
             </li>
           ))}
         </ul>
+      )}
+
+      {modalOpen && (
+        <AddCapitalModal current={current} onClose={() => setModalOpen(false)} />
       )}
     </section>
   );
@@ -454,24 +548,62 @@ function CategoryChip({ category }: { category: Category }) {
   );
 }
 
+const CATEGORIES_COLLAPSED_KEY = "compteo-categories-repliees";
+
 function CategoriesCard({ categories }: { categories: Category[] }) {
   const [addState, addAction, addPending] = useActionState<
     ProfilFormState,
     FormData
   >(addExpenseCategory, {});
   const formRef = useRef<HTMLFormElement>(null);
+  // Replié/déplié mémorisé — lu après montage pour éviter tout écart
+  // d'hydratation avec le rendu serveur
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    setCollapsed(localStorage.getItem(CATEGORIES_COLLAPSED_KEY) === "1");
+  }, []);
 
   useEffect(() => {
     if (addState.success) formRef.current?.reset();
   }, [addState.success]);
 
+  function toggleCollapsed() {
+    setCollapsed((c) => {
+      localStorage.setItem(CATEGORIES_COLLAPSED_KEY, c ? "0" : "1");
+      return !c;
+    });
+  }
+
   return (
     <section className={cardClass}>
-      <h2 className="text-lg font-extrabold">Catégories de dépenses</h2>
-      <p className="text-sm text-neutral-500 dark:text-neutral-400">
-        Ajouter, renommer ou supprimer les catégories.
-      </p>
+      <div className="flex items-start gap-4">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-lg font-extrabold">Catégories de dépenses</h2>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            Ajouter, renommer ou supprimer les catégories.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          aria-expanded={!collapsed}
+          aria-label={
+            collapsed
+              ? "Déplier les catégories de dépenses"
+              : "Replier les catégories de dépenses"
+          }
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-neutral-500 transition-colors hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+        >
+          <ChevronDown
+            size={18}
+            className={`transition-transform ${collapsed ? "-rotate-90" : ""}`}
+          />
+        </button>
+      </div>
 
+      {!collapsed && (
+        <>
       <form ref={formRef} action={addAction} className="mt-5 flex gap-3">
         <input
           name="name"
@@ -505,6 +637,8 @@ function CategoriesCard({ categories }: { categories: Category[] }) {
             <CategoryChip key={category.id} category={category} />
           ))}
         </div>
+      )}
+        </>
       )}
     </section>
   );

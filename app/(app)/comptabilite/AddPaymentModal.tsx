@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { Check, Loader2, Sparkles } from "lucide-react";
 import Modal from "@/components/Modal";
+import DatePicker from "@/components/DatePicker";
 import { formatTND, monthLabel } from "@/lib/format";
 import {
   PAYMENT_TYPE_META,
@@ -165,14 +166,12 @@ export default function AddPaymentModal({
             <label htmlFor="payment_date" className={labelClass}>
               Date
             </label>
-            <input
+            <DatePicker
               id="payment_date"
               name="payment_date"
-              form={FORM_ID}
-              type="date"
+              formId={FORM_ID}
               defaultValue={defaultDate}
               required
-              className={inputClass}
             />
           </div>
         </div>

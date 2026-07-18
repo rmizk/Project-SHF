@@ -4,9 +4,14 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { Briefcase, Check, FileText, Loader2 } from "lucide-react";
 import Modal from "@/components/Modal";
 import FileDropzone from "@/components/FileDropzone";
+import DatePicker from "@/components/DatePicker";
 import { formatTND, monthLabel } from "@/lib/format";
-import { addPurchaseInvoice, type InvoiceFormState } from "./actions";
-import type { Supplier } from "./AchatsClient";
+import {
+  addPurchaseInvoice,
+  updatePurchaseInvoice,
+  type InvoiceFormState,
+} from "./actions";
+import type { Invoice, Supplier } from "./AchatsClient";
 
 const VAT_RATES = [0, 7, 13, 19];
 const FORM_ID = "ajout-facture";
@@ -22,22 +27,29 @@ export default function AddInvoiceModal({
   suppliers,
   month,
   year,
+  invoice,
   onClose,
 }: {
   suppliers: Supplier[];
   month: number;
   year: number;
+  invoice?: Invoice; // fourni : le modal passe en mode « Modifier »
   onClose: () => void;
 }) {
+  const editing = Boolean(invoice);
   const [state, formAction, isPending] = useActionState<
     InvoiceFormState,
     FormData
-  >(addPurchaseInvoice, {});
+  >(invoice ? updatePurchaseInvoice : addPurchaseInvoice, {});
 
-  const [supplierName, setSupplierName] = useState("");
+  const [supplierName, setSupplierName] = useState(invoice?.supplier.name ?? "");
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
-  const [amountHt, setAmountHt] = useState("");
-  const [vatRate, setVatRate] = useState(19);
+  const [amountHt, setAmountHt] = useState(
+    invoice ? formatTND(invoice.amount_ht) : ""
+  );
+  const [vatRate, setVatRate] = useState(
+    invoice ? Number(invoice.vat_rate) : 19
+  );
   const supplierRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -75,9 +87,11 @@ export default function AddInvoiceModal({
   const now = new Date();
   const isCurrentMonth =
     now.getMonth() + 1 === month && now.getFullYear() === year;
-  const defaultDate = isCurrentMonth
-    ? `${year}-${String(month).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
-    : `${year}-${String(month).padStart(2, "0")}-01`;
+  const defaultDate =
+    invoice?.invoice_date ??
+    (isCurrentMonth
+      ? `${year}-${String(month).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+      : `${year}-${String(month).padStart(2, "0")}-01`);
 
   const inputClass =
     "h-12 w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 text-sm outline-none transition-colors placeholder:text-neutral-400 focus:border-brand focus:bg-white dark:border-neutral-700 dark:bg-neutral-900 dark:focus:bg-neutral-900";
@@ -88,7 +102,11 @@ export default function AddInvoiceModal({
     <Modal
       open
       onClose={onClose}
-      title="Ajouter une facture"
+      title={
+        editing
+          ? `Modifier la facture ${invoice?.invoice_number}`
+          : "Ajouter une facture"
+      }
       subtitle={`Facture fournisseur · ${monthLabel(month, year)}`}
       footer={
         <div className="flex gap-3">
@@ -111,7 +129,7 @@ export default function AddInvoiceModal({
             ) : (
               <>
                 <Check size={18} />
-                Enregistrer la facture
+                {editing ? "Enregistrer les modifications" : "Enregistrer la facture"}
               </>
             )}
           </button>
@@ -119,6 +137,14 @@ export default function AddInvoiceModal({
       }
     >
       <div className="space-y-5">
+        {invoice && (
+          <input
+            type="hidden"
+            name="invoice_id"
+            value={invoice.id}
+            form={FORM_ID}
+          />
+        )}
         {state.error && (
           <p
             role="alert"
@@ -182,6 +208,7 @@ export default function AddInvoiceModal({
               id="invoice_number"
               name="invoice_number"
               form={FORM_ID}
+              defaultValue={invoice?.invoice_number}
               placeholder="Ex. FCT-2026-0142"
               required
               className={inputClass}
@@ -191,14 +218,12 @@ export default function AddInvoiceModal({
             <label htmlFor="invoice_date" className={labelClass}>
               Date
             </label>
-            <input
+            <DatePicker
               id="invoice_date"
               name="invoice_date"
-              form={FORM_ID}
-              type="date"
+              formId={FORM_ID}
               defaultValue={defaultDate}
               required
-              className={inputClass}
             />
           </div>
         </div>
@@ -278,6 +303,12 @@ export default function AddInvoiceModal({
             <span className="font-normal text-neutral-400">· optionnel</span>
           </span>
           <FileDropzone name="attachment" formId={FORM_ID} />
+          {editing && invoice?.attachment_path && (
+            <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+              Une pièce est déjà jointe : déposez un nouveau fichier pour la
+              remplacer, ou ne touchez à rien pour la conserver.
+            </p>
+          )}
         </div>
       </div>
     </Modal>

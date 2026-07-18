@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient as createBareClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrganization } from "@/lib/organization";
-import { parseAmount } from "@/lib/amounts";
+import { parseAmount, toMillimes } from "@/lib/amounts";
 
 export type ProfilFormState = {
   error?: string;
@@ -143,10 +143,11 @@ export async function changeOwnPassword(
 }
 
 // ------------------------------------------------------------
-// Fond de roulement : chaque mise à jour ajoute une ligne à
-// l'historique (le montant actuel = dernière ligne).
+// Fond de roulement : le modal « + Ajouter » (montant + date d'effet)
+// ajoute une ligne à l'historique. Un montant identique au montant
+// actuel n'est pas enregistré (fini les lignes « +0,000 »).
 // ------------------------------------------------------------
-export async function updateWorkingCapital(
+export async function addWorkingCapitalEntry(
   _prev: ProfilFormState,
   formData: FormData
 ): Promise<ProfilFormState> {
@@ -154,15 +155,42 @@ export async function updateWorkingCapital(
   if (!organization) redirect("/connexion");
 
   const amountRaw = String(formData.get("amount") ?? "").trim();
+  const effectiveDate = String(formData.get("effective_date") ?? "");
   const amount = amountRaw ? parseAmount(amountRaw) : null;
   if (amount === null) {
     return { error: "Montant invalide : utilisez un nombre positif (3 décimales max)." };
   }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(effectiveDate)) {
+    return { error: "Saisissez la date de la mise à jour." };
+  }
 
   const supabase = await createClient();
+
+  // Montant actuel = entrée la plus récente par date d'effet
+  const { data: latest, error: latestError } = await supabase
+    .from("working_capital_history")
+    .select("amount")
+    .eq("organization_id", organization.id)
+    .order("effective_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (latestError) {
+    return {
+      error:
+        "Lecture du fond de roulement impossible — la migration « effective_date » est-elle appliquée ?",
+    };
+  }
+  if (latest && toMillimes(latest.amount) === toMillimes(amount)) {
+    return {
+      error: "Ce montant est identique au montant actuel : rien à enregistrer.",
+    };
+  }
+
   const { error } = await supabase.from("working_capital_history").insert({
     organization_id: organization.id,
     amount,
+    effective_date: effectiveDate,
   });
   if (error) {
     return { error: "L'enregistrement du fond de roulement a échoué. Réessayez." };

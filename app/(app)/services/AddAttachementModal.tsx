@@ -3,9 +3,14 @@
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Loader2, UserRound } from "lucide-react";
 import Modal from "@/components/Modal";
-import { monthLabel } from "@/lib/format";
-import { addAttachement, type AttachementFormState } from "./actions";
-import type { Client } from "./ServicesClient";
+import DatePicker from "@/components/DatePicker";
+import { formatTND, monthLabel } from "@/lib/format";
+import {
+  addAttachement,
+  updateAttachement,
+  type AttachementFormState,
+} from "./actions";
+import type { Attachement, Client } from "./ServicesClient";
 
 const VAT_RATES = [0, 7, 13, 19];
 const FORM_ID = "ajout-attachement";
@@ -21,21 +26,26 @@ export default function AddAttachementModal({
   clients,
   month,
   year,
+  attachement,
   onClose,
 }: {
   clients: Client[];
   month: number;
   year: number;
+  attachement?: Attachement; // fourni : le modal passe en mode « Modifier »
   onClose: () => void;
 }) {
+  const editing = Boolean(attachement);
   const [state, formAction, isPending] = useActionState<
     AttachementFormState,
     FormData
-  >(addAttachement, {});
+  >(attachement ? updateAttachement : addAttachement, {});
 
-  const [clientName, setClientName] = useState("");
+  const [clientName, setClientName] = useState(attachement?.client.name ?? "");
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
-  const [vatRate, setVatRate] = useState(19);
+  const [vatRate, setVatRate] = useState(
+    attachement ? Number(attachement.vat_rate) : 19
+  );
   const [status, setStatus] = useState<"pending" | "paid">("pending");
   const clientRef = useRef<HTMLDivElement>(null);
 
@@ -62,9 +72,11 @@ export default function AddAttachementModal({
   const now = new Date();
   const isCurrentMonth =
     now.getMonth() + 1 === month && now.getFullYear() === year;
-  const defaultDate = isCurrentMonth
-    ? `${year}-${String(month).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
-    : `${year}-${String(month).padStart(2, "0")}-01`;
+  const defaultDate =
+    attachement?.attachement_date ??
+    (isCurrentMonth
+      ? `${year}-${String(month).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+      : `${year}-${String(month).padStart(2, "0")}-01`);
 
   const inputClass =
     "h-12 w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 text-sm outline-none transition-colors placeholder:text-neutral-400 focus:border-brand focus:bg-white dark:border-neutral-700 dark:bg-neutral-900 dark:focus:bg-neutral-900";
@@ -75,7 +87,11 @@ export default function AddAttachementModal({
     <Modal
       open
       onClose={onClose}
-      title="Ajouter un attachement"
+      title={
+        editing
+          ? `Modifier l'attachement — ${attachement?.client.name}`
+          : "Ajouter un attachement"
+      }
       subtitle={`Prestation de service · ${monthLabel(month, year)}`}
       footer={
         <div className="flex gap-3">
@@ -106,6 +122,14 @@ export default function AddAttachementModal({
       }
     >
       <div className="space-y-5">
+        {attachement && (
+          <input
+            type="hidden"
+            name="attachement_id"
+            value={attachement.id}
+            form={FORM_ID}
+          />
+        )}
         {state.error && (
           <p
             role="alert"
@@ -170,6 +194,9 @@ export default function AddAttachementModal({
                 id="amount_ht"
                 name="amount_ht"
                 form={FORM_ID}
+                defaultValue={
+                  attachement ? formatTND(attachement.amount_ht) : undefined
+                }
                 inputMode="decimal"
                 placeholder="0,000"
                 required
@@ -184,14 +211,12 @@ export default function AddAttachementModal({
             <label htmlFor="attachement_date" className={labelClass}>
               Date
             </label>
-            <input
+            <DatePicker
               id="attachement_date"
               name="attachement_date"
-              form={FORM_ID}
-              type="date"
+              formId={FORM_ID}
               defaultValue={defaultDate}
               required
-              className={inputClass}
             />
           </div>
         </div>
@@ -219,7 +244,9 @@ export default function AddAttachementModal({
           </div>
         </div>
 
-        {/* État initial */}
+        {/* État initial — en modification, l'état reste géré par la modal
+            de paiement (« Enregistrer le paiement » / « Modifier les retenues ») */}
+        {!editing && (
         <div>
           <span className={labelClass}>État</span>
           <input type="hidden" name="status" value={status} form={FORM_ID} />
@@ -262,6 +289,7 @@ export default function AddAttachementModal({
             </p>
           )}
         </div>
+        )}
       </div>
     </Modal>
   );
