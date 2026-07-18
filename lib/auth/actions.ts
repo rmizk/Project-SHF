@@ -61,6 +61,22 @@ export async function signIn(
     return { error: "Identifiant d'organisation ou mot de passe incorrect." };
   }
 
+  // Organisation suspendue : connexion refusée (vérifié via service role,
+  // le JWT vient d'être émis mais la session est aussitôt fermée).
+  const admin = createAdminClient();
+  const { data: org, error: orgError } = await admin
+    .from("organizations")
+    .select("status")
+    .eq("auth_user_id", data.user.id)
+    .maybeSingle();
+  if (!orgError && org?.status === "suspended") {
+    await supabase.auth.signOut();
+    return {
+      error:
+        "Votre organisation est suspendue. Contactez l'administrateur pour réactiver votre accès.",
+    };
+  }
+
   if (data.user.app_metadata?.must_change_password === true) {
     redirect("/mot-de-passe/nouveau");
   }
@@ -74,6 +90,44 @@ export async function signOut(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/connexion");
+}
+
+// ------------------------------------------------------------
+// Connexion super admin (zone /admin) : email + mot de passe
+// ------------------------------------------------------------
+export async function adminSignIn(
+  _prev: AuthFormState,
+  formData: FormData
+): Promise<AuthFormState> {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+
+  if (!email || !password) {
+    return { error: "Saisissez votre email et votre mot de passe." };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error || !data.user) {
+    return { error: "Email ou mot de passe incorrect." };
+  }
+  if (data.user.app_metadata?.role !== "super_admin") {
+    // Compte valide mais sans droits admin : on referme la session
+    await supabase.auth.signOut();
+    return { error: "Ce compte n'a pas accès à l'administration." };
+  }
+
+  redirect("/admin");
+}
+
+export async function adminSignOut(): Promise<void> {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect("/admin/login");
 }
 
 // ------------------------------------------------------------
@@ -279,8 +333,7 @@ export async function submitOrganizationRequest(
       "",
       `ID de la demande : ${request.id}`,
       "",
-      `Pour approuver : npm run approve-org ${request.id}`,
-      `Pour refuser   : npm run reject-org ${request.id}`,
+      `Traiter la demande : ${siteUrl()}/admin/demandes`,
     ].join("\n"),
   });
 

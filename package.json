@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "approve-org": "node --env-file=.env.local scripts/approve-org.mjs",
-    "reject-org": "node --env-file=.env.local scripts/reject-org.mjs"
+    "reject-org": "node --env-file=.env.local scripts/reject-org.mjs",
+    "create-super-admin": "node --env-file=.env.local scripts/create-super-admin.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

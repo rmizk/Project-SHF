@@ -52,6 +52,8 @@ export default async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isPublic = isPublicPath(pathname);
+  const isAdminPath = pathname === "/admin" || pathname.startsWith("/admin/");
+  const isSuperAdmin = user?.app_metadata?.role === "super_admin";
 
   const applyCookies = (response: NextResponse) => {
     cookiesToSet.forEach(({ name, value, options }) =>
@@ -61,6 +63,24 @@ export default async function proxy(request: NextRequest) {
   };
   const redirectTo = (path: string) =>
     applyCookies(NextResponse.redirect(new URL(path, request.url)));
+
+  // Zone /admin : réservée au rôle super_admin
+  if (isAdminPath) {
+    if (pathname === "/admin/login") {
+      // Déjà connecté en super admin : direction le tableau de bord admin
+      if (isSuperAdmin) return redirectTo("/admin");
+      return applyCookies(NextResponse.next({ request }));
+    }
+    if (!user) return redirectTo("/admin/login");
+    // Une organisation connectée n'a rien à faire ici
+    if (!isSuperAdmin) return redirectTo("/");
+    return applyCookies(NextResponse.next({ request }));
+  }
+
+  // Un super admin n'a pas d'organisation : tout le reste le renvoie vers /admin
+  if (isSuperAdmin) {
+    return redirectTo("/admin");
+  }
 
   // Pas de session : tout sauf les routes publiques exige une connexion
   if (!user) {
