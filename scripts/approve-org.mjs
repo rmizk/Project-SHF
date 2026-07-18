@@ -1,9 +1,10 @@
 // Approbation d'une demande d'organisation :
 //   npm run approve-org <request_id>
 // Crée le compte Supabase Auth (email technique interne), l'organisation,
-// et « envoie » les identifiants par email (journalisés en v1).
+// et envoie les identifiants au demandeur par email (Resend).
 import { createClient } from "@supabase/supabase-js";
 import crypto from "node:crypto";
+import { sendEmail } from "./email.mjs";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -136,26 +137,27 @@ async function main() {
     throw err;
   }
 
-  // 6. « Envoi » des identifiants (v1 : journalisation, pas de SMTP)
-  const emailBody = [
-    `Bonjour ${request.company_name},`,
-    "",
-    "Votre organisation a été approuvée sur Comptéo. Voici vos identifiants :",
-    "",
-    `  Identifiant de l'organisation : ${orgCode}`,
-    `  Mot de passe provisoire        : ${password}`,
-    "",
-    "À votre première connexion, vous devrez choisir un nouveau mot de passe.",
-    `Connexion : ${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/connexion`,
-  ].join("\n");
-
-  console.log("\n=== EMAIL (simulation — aucun fournisseur configuré) ===");
-  console.log(`À      : ${request.email}`);
-  console.log("Sujet  : Comptéo — Vos identifiants de connexion");
-  console.log("");
-  console.log(emailBody);
-  console.log("=========================================================");
   console.log("\n✔ Demande approuvée, organisation créée.");
+  console.log(`  org_code : ${orgCode}`);
+  console.log(`  Mot de passe provisoire : ${password}`);
+
+  // 6. Envoi des identifiants au demandeur (échec non bloquant : l'organisation
+  // est déjà créée, les identifiants restent affichés ci-dessus).
+  await sendEmail({
+    to: request.email,
+    subject: "Comptéo — Vos identifiants de connexion",
+    text: [
+      `Bonjour ${request.company_name},`,
+      "",
+      "Votre organisation a été approuvée sur Comptéo. Voici vos identifiants :",
+      "",
+      `  Identifiant de l'organisation : ${orgCode}`,
+      `  Mot de passe provisoire        : ${password}`,
+      "",
+      "À votre première connexion, vous devrez choisir un nouveau mot de passe.",
+      `Connexion : ${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/connexion`,
+    ].join("\n"),
+  });
 }
 
 main().catch((err) => {

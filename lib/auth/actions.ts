@@ -20,6 +20,9 @@ function normalizeOrgCode(raw: FormDataEntryValue | null): string {
   return String(raw ?? "").trim().toLowerCase();
 }
 
+// Destinataire des notifications de nouvelles demandes d'organisation.
+const ADMIN_NOTIFICATION_EMAIL = "rmizkk@gmail.com";
+
 function siteUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 }
@@ -244,17 +247,42 @@ export async function submitOrganizationRequest(
     return { error: "Adresse email invalide." };
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase.from("organization_requests").insert({
-    company_name: companyName,
-    tax_id: taxId,
-    email,
-    phone: phone || null,
-  });
+  // Client admin : la RLS n'autorise le SELECT (retour de l'id) qu'au
+  // service role sur organization_requests.
+  const admin = createAdminClient();
+  const { data: request, error } = await admin
+    .from("organization_requests")
+    .insert({
+      company_name: companyName,
+      tax_id: taxId,
+      email,
+      phone: phone || null,
+    })
+    .select("id")
+    .single();
 
-  if (error) {
+  if (error || !request) {
     return { error: "L'envoi de la demande a échoué. Réessayez dans un instant." };
   }
+
+  // Notification à l'administrateur — un échec d'envoi n'annule pas la demande.
+  await sendEmail({
+    to: ADMIN_NOTIFICATION_EMAIL,
+    subject: `Comptéo — Nouvelle demande d'organisation : ${companyName}`,
+    text: [
+      "Une nouvelle demande d'organisation vient d'être soumise :",
+      "",
+      `  Société          : ${companyName}`,
+      `  Matricule fiscal : ${taxId}`,
+      `  Email            : ${email}`,
+      `  Téléphone        : ${phone || "—"}`,
+      "",
+      `ID de la demande : ${request.id}`,
+      "",
+      `Pour approuver : npm run approve-org ${request.id}`,
+      `Pour refuser   : npm run reject-org ${request.id}`,
+    ].join("\n"),
+  });
 
   redirect(`/demande-organisation/confirmation?email=${encodeURIComponent(email)}`);
 }

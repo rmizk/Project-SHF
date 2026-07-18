@@ -7,7 +7,7 @@ import { NAV_ITEMS, isActivePath } from "./navigation";
 import { monthLabel } from "@/lib/format";
 import ThemeToggle from "./ThemeToggle";
 import { useOrganization } from "./OrganizationProvider";
-import OrgAvatar from "./OrgAvatar";
+import AvatarMenu from "./AvatarMenu";
 
 function pageTitle(pathname: string): string {
   if (pathname.startsWith("/profil")) return "Profil";
@@ -81,16 +81,7 @@ export default function TopBar() {
               </Link>
             ))}
           <ThemeToggle />
-          <Link
-            href="/profil"
-            aria-label="Profil de l'organisation"
-            className="flex h-11 w-11 items-center justify-center"
-          >
-            <OrgAvatar
-              organization={organization}
-              className="h-9 w-9 rounded-lg text-xs"
-            />
-          </Link>
+          <AvatarMenu />
         </div>
       </div>
 
@@ -109,16 +100,7 @@ export default function TopBar() {
             <Bell size={18} />
           </button>
           <ThemeToggle />
-          <Link
-            href="/profil"
-            aria-label="Profil de l'organisation"
-            className="flex h-11 w-11 items-center justify-center"
-          >
-            <OrgAvatar
-              organization={organization}
-              className="h-9 w-9 rounded-lg text-xs"
-            />
-          </Link>
+          <AvatarMenu />
         </div>
       </div>
     </header>

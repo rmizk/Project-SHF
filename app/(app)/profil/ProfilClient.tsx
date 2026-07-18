@@ -1,18 +1,26 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import {
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import {
   Building2,
   Check,
   ChevronDown,
   LineChart,
   Loader2,
+  LogOut,
   Pencil,
   Plus,
   Trash2,
   Upload,
   X,
 } from "lucide-react";
+import { signOut } from "@/lib/auth/actions";
 import { useOrganization } from "@/components/OrganizationProvider";
 import OrgAvatar from "@/components/OrgAvatar";
 import Modal from "@/components/Modal";
@@ -92,6 +100,9 @@ function OrganizationCard() {
   useEffect(() => {
     if (passwordState.success) passwordFormRef.current?.reset();
   }, [passwordState.success]);
+
+  // Déconnexion
+  const [isSigningOut, startSignOut] = useTransition();
 
   return (
     <section className={cardClass}>
@@ -253,6 +264,23 @@ function OrganizationCard() {
           Changer le mot de passe
         </button>
       </form>
+
+      {/* Déconnexion */}
+      <div className="mt-7 border-t border-neutral-100 pt-5 dark:border-neutral-800">
+        <button
+          type="button"
+          disabled={isSigningOut}
+          onClick={() => startSignOut(() => signOut())}
+          className="flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:text-red-400 dark:hover:bg-red-950/50"
+        >
+          {isSigningOut ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : (
+            <LogOut size={16} />
+          )}
+          Se déconnecter
+        </button>
+      </div>
     </section>
   );
 }
