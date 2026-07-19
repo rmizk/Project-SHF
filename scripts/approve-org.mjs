@@ -91,6 +91,8 @@ async function main() {
         phone: request.phone,
         auth_user_id: userId,
         must_change_password: true,
+        // Visible dans /admin/organisations tant qu'il n'est pas changé
+        temp_password: password,
       })
       .select("id")
       .single();

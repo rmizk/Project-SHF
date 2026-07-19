@@ -9,6 +9,9 @@ import { sendEmail } from "@/lib/email";
 export type AdminActionState = {
   error?: string;
   success?: string;
+  // Identifiants créés à l'approbation, affichés dans un modal pour
+  // remise manuelle (les emails Resend en mode test peuvent échouer).
+  credentials?: { orgCode: string; password: string };
 };
 
 function siteUrl(): string {
@@ -120,6 +123,9 @@ export async function approveRequest(
         phone: request.phone,
         auth_user_id: userId,
         must_change_password: true,
+        // Conservé en clair tant que l'utilisateur n'a pas choisi son
+        // propre mot de passe (remise manuelle par l'admin), puis NULL.
+        temp_password: password,
       })
       .select("id")
       .single();
@@ -153,7 +159,9 @@ export async function approveRequest(
     return { error: "L'approbation a échoué. Réessayez." };
   }
 
-  // 5. Envoi des identifiants — un échec d'envoi n'annule pas l'approbation
+  // 5. Envoi des identifiants — un échec d'envoi n'annule pas l'approbation.
+  // TODO : réactiver pleinement après vérification d'un domaine dans Resend
+  // (en mode test, seule l'adresse du compte Resend peut recevoir des emails).
   await sendEmail({
     to: request.email,
     subject: "Comptéo — Vos identifiants de connexion",
@@ -172,7 +180,8 @@ export async function approveRequest(
 
   revalidateAdmin();
   return {
-    success: `Organisation ${orgCode} créée — identifiants envoyés à ${request.email}.`,
+    success: `Organisation ${orgCode} créée pour ${request.company_name}.`,
+    credentials: { orgCode, password },
   };
 }
 
@@ -204,6 +213,9 @@ export async function rejectRequest(
     return { error: "Cette demande a déjà été traitée." };
   }
 
+  // Un échec d'envoi n'annule pas le refus.
+  // TODO : réactiver pleinement après vérification d'un domaine dans Resend
+  // (en mode test, seule l'adresse du compte Resend peut recevoir des emails).
   await sendEmail({
     to: request.email,
     subject: "Comptéo — Suite de votre demande d'inscription",

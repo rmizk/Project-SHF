@@ -178,9 +178,11 @@ async function clearMustChangePassword(
   await admin.auth.admin.updateUserById(userId, {
     app_metadata: { ...appMetadata, must_change_password: false },
   });
+  // temp_password : le mot de passe provisoire en clair n'est conservé
+  // que tant qu'il est actif — effacé dès que l'utilisateur choisit le sien.
   await admin
     .from("organizations")
-    .update({ must_change_password: false })
+    .update({ must_change_password: false, temp_password: null })
     .eq("auth_user_id", userId);
 }
 
@@ -332,8 +334,6 @@ export async function submitOrganizationRequest(
       `  Téléphone        : ${phone || "—"}`,
       "",
       `ID de la demande : ${request.id}`,
-      "",
-      `Traiter la demande : ${siteUrl()}/admin/demandes`,
     ].join("\n"),
   });
 

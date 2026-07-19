@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import {
+  Eye,
+  EyeOff,
   Loader2,
   PauseCircle,
   PlayCircle,
@@ -14,6 +16,7 @@ import RowActionsMenu, { type RowAction } from "@/components/RowActionsMenu";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import Modal from "@/components/Modal";
 import AdminOrgAvatar from "@/components/admin/AdminOrgAvatar";
+import CopyButton from "@/components/admin/CopyButton";
 import { formatShortDate } from "@/lib/format";
 import {
   deleteOrganization,
@@ -29,7 +32,44 @@ export type AdminOrganization = {
   logo_path: string | null;
   status: "active" | "suspended";
   created_at: string;
+  temp_password: string | null;
 };
+
+// ------------------------------------------------------------
+// Mot de passe temporaire : masqué par défaut, œil pour afficher,
+// bouton copier. NULL = l'utilisateur a déjà choisi le sien.
+// ------------------------------------------------------------
+function TempPasswordCell({ password }: { password: string | null }) {
+  const [visible, setVisible] = useState(false);
+
+  if (!password) {
+    return (
+      <span className="text-neutral-400 dark:text-neutral-500">
+        Modifié par l&apos;utilisateur
+      </span>
+    );
+  }
+
+  return (
+    <span className="flex items-center gap-1">
+      <span className="font-mono font-semibold">
+        {visible ? password : "●●●●●●"}
+      </span>
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        aria-label={
+          visible ? "Masquer le mot de passe" : "Afficher le mot de passe"
+        }
+        title={visible ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
+      >
+        {visible ? <EyeOff size={16} /> : <Eye size={16} />}
+      </button>
+      <CopyButton value={password} label="Copier le mot de passe" />
+    </span>
+  );
+}
 
 // « 16 juil. 2026 » depuis un timestamp ISO
 function formatDateWithYear(iso: string): string {
@@ -228,6 +268,11 @@ export default function OrganisationsClient({
       key: "email",
       header: "Email",
       render: (org) => org.email ?? "—",
+    },
+    {
+      key: "temp_password",
+      header: "Mot de passe temporaire",
+      render: (org) => <TempPasswordCell password={org.temp_password} />,
     },
     {
       key: "created_at",

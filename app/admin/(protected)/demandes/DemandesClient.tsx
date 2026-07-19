@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Check, CircleAlert, CircleCheck, X } from "lucide-react";
+import { Check, CircleAlert, CircleCheck, KeyRound, X } from "lucide-react";
 import DataTable, { type Column } from "@/components/DataTable";
 import StatusBadge, { type StatusVariant } from "@/components/StatusBadge";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import Modal from "@/components/Modal";
+import CopyButton from "@/components/admin/CopyButton";
 import { formatShortDate } from "@/lib/format";
 import {
   approveRequest,
@@ -42,6 +44,66 @@ const STATUS_META: Record<
 // « 16 juil. 2026 » depuis un timestamp ISO
 function formatDateWithYear(iso: string): string {
   return `${formatShortDate(iso)} ${iso.slice(0, 4)}`;
+}
+
+// ------------------------------------------------------------
+// Modal de remise des identifiants après approbation
+// ------------------------------------------------------------
+function CredentialsModal({
+  credentials,
+  onClose,
+}: {
+  credentials: { orgCode: string; password: string };
+  onClose: () => void;
+}) {
+  const rows = [
+    { label: "Identifiant de l'organisation", value: credentials.orgCode },
+    { label: "Mot de passe provisoire", value: credentials.password },
+  ];
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Identifiants de connexion"
+      subtitle="À transmettre manuellement au demandeur"
+      footer={
+        <button
+          type="button"
+          onClick={onClose}
+          className="h-12 w-full rounded-xl bg-brand text-sm font-bold text-white transition-colors hover:bg-brand-hover"
+        >
+          Fermer
+        </button>
+      }
+    >
+      <div className="space-y-5">
+        <div className="space-y-3">
+          {rows.map((row) => (
+            <div
+              key={row.label}
+              className="flex items-center justify-between gap-3 rounded-xl border border-neutral-200 px-4 py-3 dark:border-neutral-700"
+            >
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+                  {row.label}
+                </p>
+                <p className="truncate font-mono text-sm font-bold">
+                  {row.value}
+                </p>
+              </div>
+              <CopyButton value={row.value} label={`Copier : ${row.label}`} />
+            </div>
+          ))}
+        </div>
+        <p className="flex items-start gap-2.5 rounded-xl bg-neutral-100 px-4 py-3 text-sm text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+          <KeyRound size={18} className="mt-0.5 shrink-0" />
+          Ces identifiants restent disponibles dans la liste des organisations
+          tant que le mot de passe n&apos;a pas été changé.
+        </p>
+      </div>
+    </Modal>
+  );
 }
 
 // ------------------------------------------------------------
@@ -90,7 +152,7 @@ function PendingActions({
       {dialog === "approve" && (
         <ConfirmDialog
           title="Approuver la demande"
-          message={`Une organisation sera créée pour ${request.company_name} et ses identifiants de connexion seront envoyés à ${request.email}.`}
+          message={`Une organisation sera créée pour ${request.company_name}. Ses identifiants de connexion vous seront affichés pour une remise manuelle.`}
           confirmLabel="Approuver"
           icon={Check}
           variant="primary"
@@ -224,6 +286,17 @@ export default function DemandesClient({
           <CircleAlert size={18} className="mt-0.5 shrink-0" />
           {lastResult.error}
         </p>
+      )}
+
+      {lastResult?.credentials && (
+        <CredentialsModal
+          credentials={lastResult.credentials}
+          onClose={() =>
+            setLastResult((prev) =>
+              prev ? { ...prev, credentials: undefined } : prev
+            )
+          }
+        />
       )}
 
       {filtered.length === 0 ? (
