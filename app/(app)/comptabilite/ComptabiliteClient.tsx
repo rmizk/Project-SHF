@@ -1,10 +1,12 @@
 "use client";
 
 import { useActionState, useMemo, useRef, useState } from "react";
-import { CreditCard, Loader2, Plus, Search } from "lucide-react";
+import { ChevronDown, CreditCard, Loader2, Plus, Search } from "lucide-react";
 import MonthYearFilter from "@/components/MonthYearFilter";
 import DataTable, { type Column } from "@/components/DataTable";
 import StatusBadge from "@/components/StatusBadge";
+import { Fab } from "@/components/Fab";
+import { usePersistedBoolean } from "@/lib/use-persisted-boolean";
 import {
   PAYMENT_TYPE_META,
   PaymentTypeLabel,
@@ -108,28 +110,46 @@ function VatCard({
     }
   }
 
+  // Section repliable, repliée par défaut, état mémorisé (mobile et bureau)
+  const [open, setOpen] = usePersistedBoolean("compteo.tva-mois.ouvert", false);
+
   return (
     <section className="rounded-2xl bg-white p-6 shadow-sm shadow-neutral-900/5 sm:p-7 dark:bg-card-dark">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        className="flex w-full items-start justify-between gap-4 text-left"
+      >
+        <span className="flex items-center gap-4">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand/10 text-brand">
             <CreditCard size={20} />
           </span>
-          <div>
-            <h2 className="text-lg font-extrabold">TVA du mois</h2>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400">
+          <span>
+            <span className="block text-lg font-extrabold">TVA du mois</span>
+            <span className="block text-sm text-neutral-500 dark:text-neutral-400">
               {monthLabel(month, year)} · déclaration au {lastDay}{" "}
               {formatShortDate(`${year}-${String(month).padStart(2, "0")}-01`).split(" ")[1]}
-            </p>
-          </div>
-        </div>
-        {vatDeclared ? (
-          <StatusBadge variant="success">Déposée</StatusBadge>
-        ) : (
-          <StatusBadge variant="warning">À déposer</StatusBadge>
-        )}
-      </div>
+            </span>
+          </span>
+        </span>
+        <span className="flex shrink-0 items-center gap-2">
+          {vatDeclared ? (
+            <StatusBadge variant="success">Déposée</StatusBadge>
+          ) : (
+            <StatusBadge variant="warning">À déposer</StatusBadge>
+          )}
+          <ChevronDown
+            size={20}
+            aria-hidden
+            className={`text-neutral-400 transition-transform duration-200 ${
+              open ? "rotate-180" : ""
+            }`}
+          />
+        </span>
+      </button>
 
+      <div className={open ? "" : "hidden"}>
       {/* Équation visuelle */}
       <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:gap-4">
         <div className={termBox}>
@@ -204,6 +224,7 @@ function VatCard({
           {creditState.error}
         </p>
       )}
+      </div>
     </section>
   );
 }
@@ -271,18 +292,8 @@ export default function ComptabiliteClient({
 
   return (
     <div className="mx-auto max-w-6xl">
-      <VatCard
-        month={month}
-        year={year}
-        vatCollected={vatCollected}
-        vatDeductible={vatDeductible}
-        vatCredit={vatCredit}
-        vatDue={vatDue}
-        vatDeclared={vatDeclared}
-      />
-
       {/* Barre d'outils des paiements */}
-      <div className="mt-8 flex flex-col gap-3 lg:flex-row lg:items-center">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <h2 className="text-xl font-extrabold lg:flex-1">Paiements</h2>
         <div className="flex items-center gap-3">
           <MonthYearFilter month={month} year={year} />
@@ -311,7 +322,7 @@ export default function ComptabiliteClient({
       </div>
 
       {/* Liste */}
-      <div className="mt-4 pb-20 lg:pb-0">
+      <div className="mt-4">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center rounded-2xl bg-white px-6 py-16 text-center shadow-sm shadow-neutral-900/5 dark:bg-card-dark">
             <span className="flex h-24 w-24 items-center justify-center rounded-3xl bg-neutral-100 dark:bg-neutral-800">
@@ -381,16 +392,21 @@ export default function ComptabiliteClient({
         )}
       </div>
 
-      {/* Mobile : bouton d'ajout flottant au-dessus de la bottom nav */}
-      <button
-        type="button"
-        onClick={() => setModalOpen(true)}
-        className="fixed inset-x-4 bottom-20 z-30 flex h-13 items-center justify-center gap-2 rounded-2xl bg-brand py-3.5 text-sm font-bold text-white shadow-lg shadow-brand/30 transition-colors hover:bg-brand-hover lg:hidden"
-      >
-        <Plus size={18} />
-        Ajouter un paiement
-      </button>
+      {/* TVA du mois : sous la liste, repliable */}
+      <div className="mt-6 pb-20 lg:pb-0">
+        <VatCard
+          month={month}
+          year={year}
+          vatCollected={vatCollected}
+          vatDeductible={vatDeductible}
+          vatCredit={vatCredit}
+          vatDue={vatDue}
+          vatDeclared={vatDeclared}
+        />
+      </div>
 
+      {/* Mobile : FAB d'ajout au-dessus de la bottom nav */}
+      <Fab label="Ajouter un paiement" onClick={() => setModalOpen(true)} />
       {modalOpen && (
         <AddPaymentModal
           month={month}

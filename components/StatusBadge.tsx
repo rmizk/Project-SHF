@@ -20,7 +20,7 @@ export default function StatusBadge({
 }: Readonly<{ variant: StatusVariant; children: React.ReactNode }>) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold ${VARIANTS[variant]}`}
+      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold sm:px-3 sm:py-1.5 sm:text-sm ${VARIANTS[variant]}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${DOTS[variant]}`} />
       {children}

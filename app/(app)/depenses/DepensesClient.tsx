@@ -15,6 +15,7 @@ import MonthYearFilter from "@/components/MonthYearFilter";
 import DataTable, { type Column } from "@/components/DataTable";
 import RowActionsMenu from "@/components/RowActionsMenu";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { Fab } from "@/components/Fab";
 import { formatShortDate, formatTND, monthName } from "@/lib/format";
 import AddExpenseModal from "./AddExpenseModal";
 import { deleteExpense } from "./actions";
@@ -300,16 +301,8 @@ export default function DepensesClient({
         )}
       </div>
 
-      {/* Mobile : bouton d'ajout flottant au-dessus de la bottom nav */}
-      <button
-        type="button"
-        onClick={() => setModalOpen(true)}
-        className="fixed inset-x-4 bottom-20 z-30 flex h-13 items-center justify-center gap-2 rounded-2xl bg-brand py-3.5 text-sm font-bold text-white shadow-lg shadow-brand/30 transition-colors hover:bg-brand-hover lg:hidden"
-      >
-        <Plus size={18} />
-        Ajouter une dépense
-      </button>
-
+      {/* Mobile : FAB d'ajout au-dessus de la bottom nav */}
+      <Fab label="Ajouter une dépense" onClick={() => setModalOpen(true)} />
       {modalOpen && (
         <AddExpenseModal
           categories={categories}

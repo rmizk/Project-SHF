@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Check, CircleAlert, CircleCheck, KeyRound, X } from "lucide-react";
+import {
+  Check,
+  CircleAlert,
+  CircleCheck,
+  KeyRound,
+  Trash2,
+  X,
+} from "lucide-react";
 import DataTable, { type Column } from "@/components/DataTable";
 import StatusBadge, { type StatusVariant } from "@/components/StatusBadge";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -10,6 +17,8 @@ import CopyButton from "@/components/admin/CopyButton";
 import { formatShortDate } from "@/lib/format";
 import {
   approveRequest,
+  deleteProcessedRequests,
+  deleteRequest,
   rejectRequest,
   type AdminActionState,
 } from "@/lib/admin/actions";
@@ -132,21 +141,28 @@ function PendingActions({
 
   return (
     <span className="flex justify-end gap-2">
+      {/* Mobile : icône seule ; bureau : icône + libellé */}
       <button
         type="button"
         onClick={() => setDialog("approve")}
-        className="flex h-11 items-center gap-1.5 rounded-xl bg-brand px-3.5 text-sm font-bold text-white transition-colors hover:bg-brand-hover lg:h-9"
+        aria-label={`Approuver la demande de ${request.company_name}`}
+        title="Approuver"
+        className="flex h-11 w-11 items-center justify-center gap-1.5 rounded-xl bg-emerald-500 text-sm font-bold text-white transition-colors hover:bg-emerald-600 lg:h-9 lg:w-auto lg:bg-brand lg:px-3.5 lg:hover:bg-brand-hover"
       >
-        <Check size={15} />
-        Approuver
+        <Check size={17} className="lg:hidden" />
+        <Check size={15} className="hidden lg:block" />
+        <span className="hidden lg:inline">Approuver</span>
       </button>
       <button
         type="button"
         onClick={() => setDialog("reject")}
-        className="flex h-11 items-center gap-1.5 rounded-xl border border-neutral-200 px-3.5 text-sm font-bold text-red-600 transition-colors hover:bg-red-50 lg:h-9 dark:border-neutral-700 dark:text-red-400 dark:hover:bg-red-950/50"
+        aria-label={`Refuser la demande de ${request.company_name}`}
+        title="Refuser"
+        className="flex h-11 w-11 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 text-sm font-bold text-red-600 transition-colors hover:bg-red-50 lg:h-9 lg:w-auto lg:px-3.5 dark:border-neutral-700 dark:text-red-400 dark:hover:bg-red-950/50"
       >
-        <X size={15} />
-        Refuser
+        <X size={17} className="lg:hidden" />
+        <X size={15} className="hidden lg:block" />
+        <span className="hidden lg:inline">Refuser</span>
       </button>
 
       {dialog === "approve" && (
@@ -175,6 +191,49 @@ function PendingActions({
 }
 
 // ------------------------------------------------------------
+// Suppression d'une demande traitée (jamais proposée « en attente »)
+// ------------------------------------------------------------
+function DeleteRequestButton({
+  request,
+  onResult,
+}: {
+  request: AdminRequest;
+  onResult: (state: AdminActionState) => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+
+  return (
+    <span className="flex justify-end">
+      <button
+        type="button"
+        onClick={() => setConfirming(true)}
+        aria-label={`Supprimer la demande de ${request.company_name}`}
+        title="Supprimer la demande"
+        className="flex h-11 w-11 items-center justify-center rounded-xl text-neutral-500 transition-colors hover:bg-red-50 hover:text-red-600 lg:h-9 lg:w-9 dark:text-neutral-400 dark:hover:bg-red-950/50 dark:hover:text-red-400"
+      >
+        <Trash2 size={17} />
+      </button>
+
+      {confirming && (
+        <ConfirmDialog
+          title="Supprimer la demande"
+          message={`La demande de ${request.company_name} sera définitivement retirée de l'historique. L'organisation éventuellement créée n'est pas affectée.`}
+          confirmLabel="Supprimer"
+          icon={Trash2}
+          onConfirm={async () => {
+            const result = await deleteRequest(request.id);
+            if (result.error) return { error: result.error };
+            onResult(result);
+            setConfirming(false);
+          }}
+          onClose={() => setConfirming(false)}
+        />
+      )}
+    </span>
+  );
+}
+
+// ------------------------------------------------------------
 // Page
 // ------------------------------------------------------------
 export default function DemandesClient({
@@ -184,8 +243,10 @@ export default function DemandesClient({
 }) {
   const [filter, setFilter] = useState<FilterKey>("pending");
   const [lastResult, setLastResult] = useState<AdminActionState | null>(null);
+  const [clearing, setClearing] = useState(false);
 
   const filtered = requests.filter((r) => r.status === filter);
+  const processed = filter !== "pending";
   const countByFilter = (key: FilterKey) =>
     requests.filter((r) => r.status === key).length;
 
@@ -212,18 +273,17 @@ export default function DemandesClient({
         </StatusBadge>
       ),
     },
-    ...(filter === "pending"
-      ? [
-          {
-            key: "actions",
-            header: <span className="sr-only">Actions</span>,
-            className: "text-right",
-            render: (r: AdminRequest) => (
-              <PendingActions request={r} onResult={setLastResult} />
-            ),
-          } satisfies Column<AdminRequest>,
-        ]
-      : []),
+    {
+      key: "actions",
+      header: <span className="sr-only">Actions</span>,
+      className: "text-right",
+      render: (r: AdminRequest) =>
+        r.status === "pending" ? (
+          <PendingActions request={r} onResult={setLastResult} />
+        ) : (
+          <DeleteRequestButton request={r} onResult={setLastResult} />
+        ),
+    },
   ];
 
   return (
@@ -299,6 +359,20 @@ export default function DemandesClient({
         />
       )}
 
+      {/* Purge des demandes traitées du filtre courant */}
+      {processed && filtered.length > 0 && (
+        <div className="mb-3 flex justify-end">
+          <button
+            type="button"
+            onClick={() => setClearing(true)}
+            className="flex h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-bold text-red-600 shadow-sm shadow-neutral-900/5 transition-colors hover:bg-red-50 lg:h-10 dark:bg-card-dark dark:text-red-400 dark:hover:bg-red-950/50"
+          >
+            <Trash2 size={16} />
+            Tout effacer
+          </button>
+        </div>
+      )}
+
       {filtered.length === 0 ? (
         <p className="rounded-2xl bg-white p-6 text-sm text-neutral-500 shadow-sm shadow-neutral-900/5 dark:bg-card-dark dark:text-neutral-400">
           {filter === "pending"
@@ -308,7 +382,79 @@ export default function DemandesClient({
               : "Aucune demande refusée."}
         </p>
       ) : (
-        <DataTable columns={columns} rows={filtered} rowKey={(r) => r.id} />
+        <>
+          {/* Bureau : tableau */}
+          <div className="hidden lg:block">
+            <DataTable columns={columns} rows={filtered} rowKey={(r) => r.id} />
+          </div>
+
+          {/* Mobile : cartes empilées (aucun défilement horizontal) */}
+          <ul className="space-y-3 lg:hidden">
+            {filtered.map((r) => (
+              <li
+                key={r.id}
+                className="rounded-2xl bg-white p-4 shadow-sm shadow-neutral-900/5 dark:bg-card-dark"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-bold">{r.company_name}</p>
+                    <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                      {formatDateWithYear(r.created_at)}
+                    </p>
+                  </div>
+                  <StatusBadge variant={STATUS_META[r.status].variant}>
+                    {STATUS_META[r.status].label}
+                  </StatusBadge>
+                </div>
+
+                <dl className="mt-3 space-y-1.5 border-t border-neutral-100 pt-3 text-sm dark:border-neutral-800">
+                  {[
+                    { label: "Matricule fiscal", value: r.tax_id },
+                    { label: "Email", value: r.email },
+                    { label: "Téléphone", value: r.phone ?? "—" },
+                  ].map((row) => (
+                    <div key={row.label} className="flex justify-between gap-3">
+                      <dt className="shrink-0 text-neutral-500 dark:text-neutral-400">
+                        {row.label}
+                      </dt>
+                      <dd className="min-w-0 truncate font-semibold">
+                        {row.value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+
+                <div className="mt-3 border-t border-neutral-100 pt-3 dark:border-neutral-800">
+                  {r.status === "pending" ? (
+                    <PendingActions request={r} onResult={setLastResult} />
+                  ) : (
+                    <DeleteRequestButton request={r} onResult={setLastResult} />
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {clearing && processed && (
+        <ConfirmDialog
+          title="Effacer les demandes traitées"
+          message={`Les ${filtered.length} demande${filtered.length > 1 ? "s" : ""} ${
+            filter === "approved" ? "approuvée" : "refusée"
+          }${filtered.length > 1 ? "s" : ""} seront définitivement retirées de l'historique. Les organisations créées ne sont pas affectées.`}
+          confirmLabel="Tout effacer"
+          icon={Trash2}
+          onConfirm={async () => {
+            const result = await deleteProcessedRequests(
+              filter as "approved" | "rejected"
+            );
+            if (result.error) return { error: result.error };
+            setLastResult(result);
+            setClearing(false);
+          }}
+          onClose={() => setClearing(false)}
+        />
       )}
     </div>
   );

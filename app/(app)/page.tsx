@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -25,6 +24,8 @@ import {
   PaymentTypeLabel,
   type PaymentType,
 } from "@/components/PaymentTypeLabel";
+import DashboardFab from "./DashboardFab";
+import WorkingCapitalAmount from "./WorkingCapitalAmount";
 
 export const metadata: Metadata = {
   title: "Tableau de bord — Comptéo",
@@ -321,9 +322,19 @@ export default async function TableauDeBordPage() {
     )
     .slice(0, 6);
 
+  // Cartes compactes sur mobile (padding et typographie réduits), pleine
+  // taille sur bureau.
   const cardClass =
-    "rounded-2xl bg-white p-5 shadow-sm shadow-neutral-900/5 dark:bg-card-dark";
-  const cardTitle = "text-sm font-semibold text-neutral-500 dark:text-neutral-400";
+    "rounded-2xl bg-white p-3.5 shadow-sm shadow-neutral-900/5 lg:p-5 dark:bg-card-dark";
+  const cardTitle =
+    "text-xs font-semibold text-neutral-500 lg:text-sm dark:text-neutral-400";
+  const cardIcon =
+    "flex h-9 w-9 items-center justify-center rounded-xl lg:h-11 lg:w-11";
+  const cardValue =
+    "mt-0.5 text-lg font-extrabold tracking-tight lg:mt-1 lg:text-2xl";
+  // Lignes secondaires : masquées sur mobile pour raccourcir les cartes
+  const cardHint =
+    "mt-2 hidden text-sm text-neutral-500 lg:block dark:text-neutral-400";
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -336,7 +347,7 @@ export default async function TableauDeBordPage() {
       </div>
 
       {/* Fond de roulement — carte sombre sur mobile (fidèle au screen) */}
-      <section className="relative overflow-hidden rounded-2xl bg-neutral-900 p-5 text-white lg:hidden dark:bg-neutral-950">
+      <section className="relative overflow-hidden rounded-2xl bg-neutral-900 p-4 text-white lg:hidden dark:bg-neutral-950">
         <div className="flex items-start justify-between gap-3">
           <p className="text-sm font-semibold text-neutral-300">Fond de roulement</p>
           {currentCapital !== null && previousCapital !== null && (
@@ -347,9 +358,15 @@ export default async function TableauDeBordPage() {
             />
           )}
         </div>
-        <p className="mt-2 text-3xl font-extrabold tracking-tight">
-          {currentCapital !== null ? formatTND(fromMillimes(currentCapital)) : "—"}
-          <span className="ml-1.5 text-base font-bold text-neutral-400">TND</span>
+        <p className="mt-1 text-2xl font-extrabold tracking-tight">
+          <WorkingCapitalAmount
+            amount={
+              currentCapital !== null
+                ? formatTND(fromMillimes(currentCapital))
+                : null
+            }
+            tone="dark"
+          />
         </p>
       </section>
 
@@ -371,8 +388,13 @@ export default async function TableauDeBordPage() {
           </div>
           <p className={`mt-4 ${cardTitle}`}>Fond de roulement</p>
           <p className="mt-1 text-2xl font-extrabold tracking-tight">
-            {currentCapital !== null ? formatTND(fromMillimes(currentCapital)) : "—"}
-            <span className="ml-1 text-sm font-bold text-neutral-400">TND</span>
+            <WorkingCapitalAmount
+              amount={
+                currentCapital !== null
+                  ? formatTND(fromMillimes(currentCapital))
+                  : null
+              }
+            />
           </p>
           <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
             {previousCapital !== null
@@ -384,28 +406,32 @@ export default async function TableauDeBordPage() {
         {/* TVA à payer ce mois */}
         <section className={cardClass}>
           <div className="flex items-start justify-between gap-2">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 text-orange-500 dark:bg-orange-950/50">
+            <span
+              className={`${cardIcon} bg-orange-50 text-orange-500 dark:bg-orange-950/50`}
+            >
               <CreditCard size={19} />
             </span>
-            <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-orange-50 px-2.5 py-1 text-xs font-bold text-orange-600 dark:bg-orange-950/50 dark:text-orange-400">
-              <CalendarClock size={13} />
+            <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-bold text-orange-600 lg:px-2.5 lg:py-1 lg:text-xs dark:bg-orange-950/50 dark:text-orange-400">
+              <CalendarClock size={12} />
               {deadlineLabel}
             </span>
           </div>
-          <p className={`mt-4 ${cardTitle}`}>
+          <p className={`mt-2.5 lg:mt-4 ${cardTitle}`}>
             {vatDue < 0 ? "Crédit de TVA ce mois" : "TVA à payer ce mois"}
           </p>
-          <p className="mt-1 text-2xl font-extrabold tracking-tight">
+          <p className={cardValue}>
             {formatTND(fromMillimes(Math.abs(vatDue)))}
-            <span className="ml-1 text-sm font-bold text-neutral-400">TND</span>
+            <span className="ml-1 text-xs font-bold text-neutral-400 lg:text-sm">
+              TND
+            </span>
           </p>
-          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+          <div className="mt-2.5 hidden h-1.5 overflow-hidden rounded-full bg-neutral-100 lg:block dark:bg-neutral-800">
             <div
               className="h-full rounded-full bg-orange-500"
               style={{ width: `${monthProgress}%` }}
             />
           </div>
-          <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
+          <p className={cardHint}>
             Déclaration à déposer sous {daysLeft} jour{daysLeft > 1 ? "s" : ""}
           </p>
         </section>
@@ -413,23 +439,23 @@ export default async function TableauDeBordPage() {
         {/* Attachements en attente */}
         <section className={cardClass}>
           <div className="flex items-start justify-between gap-2">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand/10 text-brand">
+            <span className={`${cardIcon} bg-brand/10 text-brand`}>
               <Paperclip size={19} />
             </span>
             {pending.length > 0 && (
-              <span className="whitespace-nowrap rounded-full bg-red-50 px-2.5 py-1 text-xs font-bold text-red-500 dark:bg-red-950/50 dark:text-red-400">
+              <span className="whitespace-nowrap rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-red-500 lg:px-2.5 lg:py-1 lg:text-xs dark:bg-red-950/50 dark:text-red-400">
                 À traiter
               </span>
             )}
           </div>
-          <p className={`mt-4 ${cardTitle}`}>Attachements en attente</p>
-          <p className="mt-1 text-2xl font-extrabold tracking-tight">
+          <p className={`mt-2.5 lg:mt-4 ${cardTitle}`}>Attachements en attente</p>
+          <p className={cardValue}>
             {pending.length}
-            <span className="ml-1.5 text-sm font-bold text-neutral-400">
+            <span className="ml-1.5 text-xs font-bold text-neutral-400 lg:text-sm">
               document{pending.length > 1 ? "s" : ""}
             </span>
           </p>
-          <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
+          <p className={cardHint}>
             {pending.length > 0
               ? `${formatTND(fromMillimes(pendingTotal))} TND à encaisser ce mois`
               : "Aucun attachement à traiter ce mois"}
@@ -439,7 +465,9 @@ export default async function TableauDeBordPage() {
         {/* Dépenses du mois */}
         <section className={`${cardClass} col-span-2 lg:col-span-1`}>
           <div className="flex items-start justify-between gap-2">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-red-500 dark:bg-red-950/50">
+            <span
+              className={`${cardIcon} bg-red-50 text-red-500 dark:bg-red-950/50`}
+            >
               <DollarSign size={19} />
             </span>
             <VariationBadge
@@ -448,13 +476,15 @@ export default async function TableauDeBordPage() {
               goodWhenUp={false}
             />
           </div>
-          <p className={`mt-4 ${cardTitle}`}>Dépenses du mois</p>
-          <p className="mt-1 text-2xl font-extrabold tracking-tight">
+          <p className={`mt-2.5 lg:mt-4 ${cardTitle}`}>Dépenses du mois</p>
+          <p className={cardValue}>
             {formatTND(fromMillimes(expensesTotal))}
-            <span className="ml-1 text-sm font-bold text-neutral-400">TND</span>
+            <span className="ml-1 text-xs font-bold text-neutral-400 lg:text-sm">
+              TND
+            </span>
           </p>
           {/* Mini-graphe : 6 derniers mois, mois courant en surbrillance */}
-          <div className="mt-3 flex h-12 items-end gap-1.5" aria-hidden>
+          <div className="mt-2.5 flex h-8 items-end gap-1.5 lg:mt-3 lg:h-12" aria-hidden>
             {graphTotals.map((g, index) => (
               <div
                 key={`${g.label}-${index}`}
@@ -558,24 +588,11 @@ export default async function TableauDeBordPage() {
         )}
       </section>
 
-      {/* Actions rapides mobile : vers les modals des modules */}
-      <div className="mt-5 grid grid-cols-3 gap-2.5 pb-4 lg:hidden">
-        {(
-          [
-            { href: "/achats?ajouter=1", label: "+ Facture" },
-            { href: "/services?ajouter=1", label: "+ Attachement" },
-            { href: "/depenses?ajouter=1", label: "+ Dépense" },
-          ] as const
-        ).map((action) => (
-          <Link
-            key={action.href}
-            href={action.href}
-            className="flex h-12 items-center justify-center rounded-xl bg-white text-sm font-bold text-brand shadow-sm shadow-neutral-900/5 transition-colors hover:bg-brand/5 dark:bg-card-dark"
-          >
-            {action.label}
-          </Link>
-        ))}
-      </div>
+      {/* Marge sous la liste : le FAB ne recouvre pas la dernière opération */}
+      <div className="pb-20 lg:pb-0" />
+
+      {/* Actions rapides mobile : FAB « speed dial » */}
+      <DashboardFab />
     </div>
   );
 }

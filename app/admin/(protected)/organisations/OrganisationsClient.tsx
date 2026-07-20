@@ -311,11 +311,73 @@ export default function OrganisationsClient({
           Aucune organisation : approuvez une demande pour créer la première.
         </p>
       ) : (
-        <DataTable
-          columns={columns}
-          rows={organizations}
-          rowKey={(org) => org.id}
-        />
+        <>
+          {/* Bureau : tableau */}
+          <div className="hidden lg:block">
+            <DataTable
+              columns={columns}
+              rows={organizations}
+              rowKey={(org) => org.id}
+            />
+          </div>
+
+          {/* Mobile : cartes empilées (aucun défilement horizontal) */}
+          <ul className="space-y-3 lg:hidden">
+            {organizations.map((org) => (
+              <li
+                key={org.id}
+                className="rounded-2xl bg-white p-4 shadow-sm shadow-neutral-900/5 dark:bg-card-dark"
+              >
+                <div className="flex items-center gap-3">
+                  <AdminOrgAvatar
+                    name={org.name}
+                    logoPath={org.logo_path}
+                    className="h-10 w-10 rounded-xl text-xs"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-bold">{org.name}</p>
+                    <p className="truncate text-sm text-neutral-500 dark:text-neutral-400">
+                      {org.org_code} · {formatDateWithYear(org.created_at)}
+                    </p>
+                  </div>
+                  <StatusBadge
+                    variant={org.status === "suspended" ? "warning" : "success"}
+                  >
+                    {org.status === "suspended" ? "Suspendu" : "Actif"}
+                  </StatusBadge>
+                  <RowActions organization={org} />
+                </div>
+
+                <dl className="mt-3 space-y-1.5 border-t border-neutral-100 pt-3 text-sm dark:border-neutral-800">
+                  <div className="flex justify-between gap-3">
+                    <dt className="shrink-0 text-neutral-500 dark:text-neutral-400">
+                      Matricule fiscal
+                    </dt>
+                    <dd className="min-w-0 truncate font-semibold">
+                      {org.tax_id}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="shrink-0 text-neutral-500 dark:text-neutral-400">
+                      Email
+                    </dt>
+                    <dd className="min-w-0 truncate font-semibold">
+                      {org.email ?? "—"}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="shrink-0 text-neutral-500 dark:text-neutral-400">
+                      Mot de passe
+                    </dt>
+                    <dd className="min-w-0">
+                      <TempPasswordCell password={org.temp_password} />
+                    </dd>
+                  </div>
+                </dl>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </div>
   );

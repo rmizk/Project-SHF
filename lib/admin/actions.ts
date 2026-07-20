@@ -240,6 +240,61 @@ export async function rejectRequest(
 }
 
 // ------------------------------------------------------------
+// Suppression de demandes traitées. Une demande « en attente » n'est
+// jamais supprimable : le filtre sur le statut est appliqué en base.
+// ------------------------------------------------------------
+export async function deleteRequest(
+  requestId: string
+): Promise<AdminActionState> {
+  await requireSuperAdmin();
+  if (!requestId) return { error: "Demande introuvable." };
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("organization_requests")
+    .delete()
+    .eq("id", requestId)
+    .in("status", ["approved", "rejected"])
+    .select("company_name")
+    .maybeSingle();
+
+  if (error) return { error: "La suppression a échoué. Réessayez." };
+  if (!data) {
+    revalidateAdmin();
+    return { error: "Seules les demandes traitées peuvent être supprimées." };
+  }
+
+  revalidateAdmin();
+  return { success: `Demande de ${data.company_name} supprimée.` };
+}
+
+export async function deleteProcessedRequests(
+  status: "approved" | "rejected"
+): Promise<AdminActionState> {
+  await requireSuperAdmin();
+  if (status !== "approved" && status !== "rejected") {
+    return { error: "Seules les demandes traitées peuvent être supprimées." };
+  }
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("organization_requests")
+    .delete()
+    .eq("status", status)
+    .select("id");
+
+  if (error) return { error: "La suppression a échoué. Réessayez." };
+
+  revalidateAdmin();
+  const count = data?.length ?? 0;
+  return {
+    success: `${count} demande${count > 1 ? "s" : ""} ${
+      status === "approved" ? "approuvée" : "refusée"
+    }${count > 1 ? "s" : ""} supprimée${count > 1 ? "s" : ""}.`,
+  };
+}
+
+// ------------------------------------------------------------
 // Suspension / réactivation d'une organisation
 // ------------------------------------------------------------
 export async function setOrganizationStatus(
